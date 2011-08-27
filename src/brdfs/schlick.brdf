@@ -1,0 +1,26 @@
+analytic
+
+# Schlicks 1994 "New BRDF Model"
+
+::begin parameters
+float f0 0 1 1
+::end parameters
+
+
+::begin shader
+
+float Fresnel(float f0, float u)
+{
+    return f0 + (1-f0) * pow(1-u, 5);
+}
+
+
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    vec3 H = normalize(L+V);
+    float val = Fresnel(f0, dot(H,L));
+    return vec3(val);
+}
+
+::end shader

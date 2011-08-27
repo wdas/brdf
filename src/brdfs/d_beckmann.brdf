@@ -1,0 +1,40 @@
+analytic
+
+# Beckmann distribution, from Cook-Torrance
+# with added 1/PI normalization factor
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float m 0.001 .7 .1
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+const float PI = 3.14159265358979323846;
+
+float Beckmann(float m, float t)
+{
+    float M = m*m;
+    float T = t*t;
+    return exp((T-1)/(M*T)) / (PI*M*T*T);
+}
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    // compute the half vec3
+    vec3 H = normalize( L + V );
+    float NdotH = dot(N, H);
+
+    float D = Beckmann(m, NdotH);
+    return vec3(D);
+}
+
+::end shader

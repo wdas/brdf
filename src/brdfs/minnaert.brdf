@@ -1,0 +1,24 @@
+analytic
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float k 0.5 1 1
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever other functions you want too). 
+
+::begin shader
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    vec3 H = normalize(L+V);
+    return vec3((k+1) * pow(dot(N,L)*dot(N,V), k-1) / (2*3.14159265));
+}
+
+::end shader

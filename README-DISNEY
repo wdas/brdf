@@ -1,0 +1,7 @@
+To produce a Disney-friendly, attach-able product:
+	qmake
+	make install
+
+NOTE: if building against the system, use 'qmake-qt4' instead of just 'qmake',
+      or else you might end up using the qt3.3 qmake.
+

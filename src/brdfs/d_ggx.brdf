@@ -1,0 +1,37 @@
+analytic
+
+# ggx from Walter 07
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float alpha 0.001 1 .1
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+const float PI = 3.14159265358979323846;
+
+float sqr(float x) { return x*x; }
+
+float GGX(float alpha, float cosThetaM)
+{
+    float CosSquared = cosThetaM*cosThetaM;
+    float TanSquared = (1-CosSquared)/CosSquared;
+    return (1.0/PI) * sqr(alpha/(CosSquared * (alpha*alpha + TanSquared)));
+}
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    vec3 H = normalize( L + V );
+    float D = GGX(alpha, dot(N,H));
+    return vec3(D);
+}
+
+::end shader

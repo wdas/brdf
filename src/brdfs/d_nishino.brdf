@@ -1,0 +1,32 @@
+analytic
+
+# Nishino 2009, "Directional Statistic BRDF Model"
+# (Hemi-EPD = hemispherical exponential power distribution)
+
+::begin parameters
+float n 1 1000 100
+float k .1 10 1
+::end parameters
+::begin shader
+
+vec3 reflect(vec3 I, vec3 N)
+{
+    return 2*dot(I,N)*N - I;
+}
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float PI = 3.14159265358979323846 ;
+    vec3 H = normalize(L+V);
+    float NdotH = max(0,dot(N,H));
+    // note: k in Nishino is assumed negative - negate as used instead
+    float epd = 1-exp(-k * pow(NdotH,n));
+    // the normalization constant includes gamma functions which are unavailable in glsl
+    // float Cn =  pow(n*k,1/n) / (gamma(1/n) - igamma(1/n, k) - pow(n*k, 1/n))
+    // some approximation is needed
+    float Cn = 1;
+
+    return vec3(Cn*epd);
+}
+
+::end shader

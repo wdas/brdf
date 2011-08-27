@@ -1,0 +1,58 @@
+analytic
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+bool show_thetaH 0
+bool show_thetaD 0
+bool show_thetaL 0
+bool show_thetaV 0
+bool show_phiH 0
+bool show_phiD 0
+bool show_phiL 0
+bool show_phiV 0
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever other functions you want too). 
+
+::begin shader
+
+const float PI = 3.14159265358979323846;
+
+float theta(vec3 v, vec3 N)
+{
+    return acos(dot(v,N)) / (0.5*PI);
+}
+
+float phi(vec3 v, vec3 N, vec3 X)
+{
+    vec3 Y = normalize(cross(N,X));
+    float costheta = clamp(dot(v,N),-1,1);
+    float sintheta = sqrt(1-costheta*costheta);
+    float cosphi = dot(v,X) / sintheta;
+    float sinphi = dot(v,Y) / sintheta;
+    float phi = acos(cosphi) / (2*PI);
+    return sinphi < 0 ? 1-phi : phi;
+}
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    vec3 H = normalize(L+V);
+    return vec3(
+        show_thetaH ? theta(H,N) :
+        show_thetaD ? theta(L,H) :
+        show_thetaL ? theta(L,N) :
+        show_thetaV ? theta(V,N) :
+        show_phiH ? phi(H,N,X) :
+        show_phiD ? phi(L,H,normalize(cross(H,cross(H,N)))) :
+        show_phiL ? phi(L,N,X) :
+        show_phiV ? phi(V,N,X) : .5
+    );
+}
+
+::end shader

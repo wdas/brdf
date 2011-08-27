@@ -1,0 +1,33 @@
+analytic
+
+# Torrance-Sparrow G term (from Cook-Torrance)
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+bool includeInvNdotLNdotV 0
+::end parameters
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    vec3 H = normalize(L+V);
+
+    float NdotH = dot(N, H);
+    float VdotH = dot(V, H);
+    float NdotL = dot(N, L);
+    float NdotV = dot(N, V);
+
+    float G = min(1.0, min(2*NdotH*NdotV / VdotH, 2*NdotH*NdotL / VdotH));
+    if (includeInvNdotLNdotV) G *= 1/(NdotL*NdotV);
+    return vec3(G);
+}
+
+::end shader

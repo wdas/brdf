@@ -1,0 +1,4 @@
+*.o
+moc_*
+Makefile
+Linux-*

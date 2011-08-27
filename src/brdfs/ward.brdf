@@ -1,0 +1,49 @@
+analytic
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float alpha_x 0 1.0 0.15
+float alpha_y 0 1.0 0.15
+color Cs 1 1 1
+color Cd 1 1 1
+bool isotropic 0
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+float sqr( float x )
+{
+    return x*x;
+}
+
+
+// Ward BRDF
+// this is the formulation specified in "Notes on the Ward BRDF" - Bruce Walter, 2005
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    vec3 H = normalize(L + V);
+
+    // specular
+    float ax = alpha_x;
+    float ay = isotropic ? alpha_x : alpha_y;
+    float exponent = -(
+        sqr( dot(H,X) / ax ) +
+        sqr( dot(H,Y) / ay)
+    ) / sqr( dot( H, N ) );
+
+    float spec = 1.0 / (4.0 * 3.14159265 * ax * ay * sqrt( dot(L,N) * dot(V, N) ));
+    spec *= exp( exponent );
+
+    return Cd / 3.14159265 + Cs * spec;
+}
+
+::end shader

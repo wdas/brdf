@@ -1,0 +1,99 @@
+/*
+Copyright Disney Enterprises, Inc. All rights reserved.
+
+This license governs use of the accompanying software. If you use the software, you
+accept this license. If you do not accept the license, do not use the software.
+
+1. Definitions
+The terms "reproduce," "reproduction," "derivative works," and "distribution" have
+the same meaning here as under U.S. copyright law. A "contribution" is the original
+software, or any additions or changes to the software. A "contributor" is any person
+that distributes its contribution under this license. "Licensed patents" are a
+contributor's patent claims that read directly on its contribution.
+
+2. Grant of Rights
+(A) Copyright Grant- Subject to the terms of this license, including the license
+conditions and limitations in section 3, each contributor grants you a non-exclusive,
+worldwide, royalty-free copyright license to reproduce its contribution, prepare
+derivative works of its contribution, and distribute its contribution or any derivative
+works that you create.
+(B) Patent Grant- Subject to the terms of this license, including the license
+conditions and limitations in section 3, each contributor grants you a non-exclusive,
+worldwide, royalty-free license under its licensed patents to make, have made,
+use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the
+software or derivative works of the contribution in the software.
+
+3. Conditions and Limitations
+(A) No Trademark License- This license does not grant you rights to use any
+contributors' name, logo, or trademarks.
+(B) If you bring a patent claim against any contributor over patents that you claim
+are infringed by the software, your patent license from such contributor to the
+software ends automatically.
+(C) If you distribute any portion of the software, you must retain all copyright,
+patent, trademark, and attribution notices that are present in the software.
+(D) If you distribute any portion of the software in source code form, you may do
+so only under this license by including a complete copy of this license with your
+distribution. If you distribute any portion of the software in compiled or object code
+form, you may only do so under a license that complies with this license.
+(E) The software is licensed "as-is." You bear the risk of using it. The contributors
+give no express warranties, guarantees or conditions. You may have additional
+consumer rights under your local laws which this license cannot change.
+To the extent permitted under your local laws, the contributors exclude the
+implied warranties of merchantability, fitness for a particular purpose and non-
+infringement.
+*/
+
+uniform samplerBuffer measuredDataAniso;
+
+const int theta_in_dim = 45;
+const int theta_out_dim = 45;
+const int phi_diff_dim = 180;
+const int phi_in_dim = 90;
+const float PI = 3.1415926535897932384626433832795;
+
+int ThetaIn2Index(float theta_in) {
+  return clamp(int(theta_in*theta_in_dim*2.0/PI), 0, theta_in_dim-1);
+}
+
+int ThetaOut2Index(float theta_out) {
+  return clamp(int(theta_out*theta_out_dim*2.0/PI), 0, theta_out_dim-1);
+}
+
+int PhiDiff2Index(float phi_diff) {
+  if (phi_diff < 0) phi_diff += 2.0*PI;
+  return clamp(int(phi_diff*phi_diff_dim/(2.0*PI)), 0, phi_diff_dim-1);
+}
+
+int PhiIn2Index(float phi_in) {
+  if (phi_in < 0) phi_in += 2.0*PI;
+  return clamp(int(phi_in*phi_in_dim/(2.0*PI)), 0, phi_in_dim-1);
+}
+
+
+vec3 BRDF( vec3 toLight, vec3 toViewer, vec3 normal, vec3 tangent, vec3 bitangent )
+{
+
+  float costheta_in = dot(normal, toLight);
+  float costheta_out = dot(normal, toViewer);
+  if (costheta_in < 0 || costheta_out < 0) return vec3(0, 0, 0);
+  float theta_in = acos(clamp(costheta_in, 0, 1));
+  float theta_out = acos(clamp(costheta_out, 0, 1));
+  float phi_out = atan(clamp(-dot(toViewer, bitangent), -1, 1), clamp(-dot(toViewer, tangent), -1, 1));
+  float phi_in = atan(clamp(-dot(toLight, bitangent), -1, 1), clamp(-dot(toLight, tangent), -1, 1));
+  float phi_diff = phi_out - phi_in;
+
+  int i_theta_in = ThetaIn2Index(theta_in);
+  int i_theta_out = ThetaOut2Index(theta_out);
+  int i_phi_diff = PhiDiff2Index(phi_diff);
+  int i_phi_in = PhiIn2Index(phi_in);
+
+  int redIndex = i_phi_in + phi_in_dim*(i_phi_diff + phi_diff_dim*(i_theta_out + theta_out_dim*i_theta_in));
+  int greenIndex = redIndex + phi_in_dim*phi_diff_dim*theta_out_dim*theta_in_dim;
+  int blueIndex = greenIndex + phi_in_dim*phi_diff_dim*theta_out_dim*theta_in_dim;
+
+  float r = texelFetch(measuredDataAniso, redIndex).r;
+  float g = texelFetch(measuredDataAniso, greenIndex).r;
+  float b = texelFetch(measuredDataAniso, blueIndex).r;
+  if (r < 0 || g < 0 || b < 0) return vec3(0,0,0);
+  else return 10.0*vec3(r, g, b);
+}

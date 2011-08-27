@@ -1,0 +1,49 @@
+# RPMs can be built using 'git make-rpm'
+Name:           brdf
+Version:        __VERSION__
+Release:        __RELEASE__%{?dist}
+Summary:        BRDF Viewer
+
+Group:          Applications/Multimedia
+License:        Disney
+URL:            http://gitweb/projects/%{name}
+Source0:        http://gitweb/projects/%{name}-%{version}.tar.gz
+
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
+BuildRequires:  glew
+BuildRequires:  glew-devel
+BuildRequires:  qt
+BuildRequires:  qt-devel
+BuildRequires:  pkgconfig-disney
+
+Requires:       glew
+Requires:       qt
+
+prefix:         %{_prefix}
+BuildRoot:      %{_topdir}/BUILDROOT/%{name}-%{version}
+
+%description
+The BRDF viewer is the best way to quickly get a feel for
+how shader controls work and quickly dial in material settings
+
+%prep
+%setup -q
+
+%build
+
+%install
+qmake-qt4 prefix=%{_prefix}
+make INSTALL_ROOT=%{buildroot} install
+
+%clean
+rm -rf %{buildroot}
+
+%post
+
+%postun
+
+%files
+%defattr(-,root,root,-)
+%{_bindir}/brdf
+%{_datadir}/brdf

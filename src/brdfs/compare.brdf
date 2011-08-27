@@ -1,0 +1,158 @@
+analytic
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float Kd 0 1 .1
+float Ks 0 1 .5
+float specwidth 0.002 1 .02
+float F0 0 1 .01
+float kurtAlpha 0 2 0.5
+bool useBeckmannD 0
+bool useTrowbridgeReitzD 1
+bool useSchlickF 1
+bool useSmithG 0
+bool useSchlickG 0
+bool useWardG 0
+bool useNeumannG 0
+bool useAshikhminShirleyG 0
+bool useAshikhminPremozeG 0
+bool useCookTorranceG 0
+bool useKurtG 0
+bool useKelemenG 0
+bool useDuerG 0
+::end parameters
+
+
+::begin shader
+
+const float PI = 3.14159265358979323846;
+
+float SchlickFresnel(float f0, float f90, float u)
+{
+    return f0 + (f90-f0) * pow(1-u, 5);
+}
+
+float sqr(float x)
+{
+    return x*x;
+}
+
+float Beckmann(float t, float m)
+{
+    float M = m*m;
+    float T = t*t;
+    return exp((T-1)/(M*T)) / (PI*M*T*T);
+}
+
+float NormalizedTrowbridgeReitz(float costhetaH, float w)
+{
+    float w2 = w*w;
+    return w2 / (PI * sqr( costhetaH*costhetaH * (w2 - 1) + 1 ));
+}
+
+float smithG1_GGX(float Ndotv, float alphaG)
+{
+    return 2/(1 + sqrt(1 + alphaG*alphaG * (1-Ndotv*Ndotv)/(Ndotv*Ndotv)));
+}
+
+float smithG_GGX(float NdotL, float NdotV, float alphaG)
+{
+    return smithG1_GGX(NdotL, alphaG) * smithG1_GGX(NdotV, alphaG);
+}
+
+float schlickG1(float v, float m)
+{
+    float k = sqrt(2*m*m/PI);
+    return v > 0 ? v/(v-k*v + k) : 0;
+}
+
+float schlickG(float NdotL, float NdotV, float m)
+{
+    return schlickG1(NdotL, m) * schlickG1(NdotV, m);
+}
+
+float wardG(float NdotL, float NdotV)
+{
+    return 1/sqrt(NdotL * NdotV);
+}
+
+float neumannG(float NdotL, float NdotV)
+{
+    return 1/max(NdotL, NdotV);
+}
+
+float ashikhminShirleyG(float NdotL, float NdotV, float LdotH)
+{
+    return 1/(LdotH * max(NdotL, NdotV));
+}
+
+float ashikhminPremozeG(float NdotL, float NdotV)
+{
+    return 1/(NdotL+NdotV - NdotL*NdotV);
+}
+
+
+float cookTorranceG(float NdotL, float NdotV, float LdotH, float NdotH)
+{
+    return min(1, 2 * (NdotH / LdotH) * min(NdotL, NdotV));
+}
+
+
+float kurtG(float NdotL, float NdotV, float LdotH, float alpha)
+{
+    return 1 / (4 * LdotH * pow(NdotL* NdotV, alpha));
+}
+
+
+float kelemenG(float LdotV)
+{
+    return 1 / (2 * (1 + LdotV));
+}
+
+
+float duerG(vec3 L, vec3 V, vec3 N)
+{
+    vec3 LplusV = L + V;
+    return dot(LplusV,LplusV) / (PI * pow(dot(LplusV,N), 4));
+}
+
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float NdotL = dot(N,L);
+    float NdotV = dot(N,V);
+    if (NdotL < 0 || NdotV < 0) return vec3(0);
+
+    vec3 H = normalize(L+V);
+    float NdotH = dot(N,H);
+    float LdotH = dot(L,H);
+
+    float D =
+        useBeckmannD ? Beckmann(NdotH, specwidth) :
+        useTrowbridgeReitzD ? NormalizedTrowbridgeReitz(NdotH, specwidth) :
+        1;
+
+    float F =
+        useSchlickF ? SchlickFresnel(F0, 1, LdotH) :
+        1;
+
+    float G =
+        useSmithG ? smithG_GGX(NdotL, NdotV, specwidth) / (4*NdotL*NdotV) :
+        useSchlickG ? schlickG(NdotL, NdotV, specwidth) / (4*NdotL*NdotV) :
+        useWardG ? wardG(NdotL, NdotV) :
+        useNeumannG ? neumannG(NdotL, NdotV) :
+        useAshikhminShirleyG ? ashikhminShirleyG(NdotL, NdotV, LdotH) :
+        useAshikhminPremozeG ? ashikhminPremozeG(NdotL, NdotV) :
+        useCookTorranceG ? cookTorranceG(NdotL, NdotV, LdotH, NdotH) / (PI * NdotL * NdotV):
+        useKurtG ? kurtG(NdotL, NdotV, LdotH, kurtAlpha) :
+        useKelemenG ? kelemenG(dot(L,V)) :
+        useDuerG ? duerG(L, V, N) :
+        1;
+
+    return vec3(Ks*D*F*G) + vec3(Kd,0,0);
+}
+
+::end shader

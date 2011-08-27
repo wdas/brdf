@@ -1,0 +1,44 @@
+analytic
+# "Stretched Phong" BRDF from "Compact Metallic Reflectance Models", Neumann et al. 1999
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float Ks 0 1 1
+float n 1 1000 1
+float p 0 1 1
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+vec3 reflect(vec3 I, vec3 N)
+{
+    return 2*dot(I,N)*N - I;
+}
+
+float sqr( float x )
+{
+    return x*x;
+}
+
+
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float norm = (n+2)/(2*3.14159265358979323846);
+    float NdotL = dot(N,L);
+    float NdotV = dot(N,V);
+    float LdotV = dot(L,V);
+
+    float val = norm * pow(max(0, 2 * NdotL * NdotV - LdotV), n) / pow(max(NdotL, NdotV), p);
+    return vec3(vec3(Ks * val));
+}
+
+::end shader

@@ -1,0 +1,35 @@
+analytic
+
+# Duer 2010 Bounding the Albedo of the Ward Reflectance Model
+
+# Note: This model didn't have an explicit G; the G is implied by factoring
+# out the 1/(N.L * N.V) term.
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+bool includeInvNdotLNdotV 0
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float NdotL = dot(N,L);
+    float NdotV = dot(N,V);
+    vec3 LplusV = L + V;
+
+    float G = dot(LplusV,LplusV) * pow(dot(LplusV,N),-4);
+    if (includeInvNdotLNdotV) G *= NdotL*NdotV;
+    return vec3(G);
+}
+
+::end shader

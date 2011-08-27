@@ -1,0 +1,35 @@
+analytic
+
+# Ashikhmin Shirley 2000, An Isotropic BRDF Model
+# Note: This model didn't have an explicit G; the G is implied by factoring
+# out the 1/(N.L * N.V) term.
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+bool includeInvNdotLNdotV 0
+::end parameters
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float NdotL = dot(N, L);
+    float NdotV = dot(N, V);
+    if (NdotL < 0 || NdotV < 0) return vec3(0);
+
+    vec3 H = normalize(L+V);
+    float HdotL = dot(H,L);
+
+    float G = NdotL*NdotV/(HdotL*max(NdotL,NdotV));
+    if (includeInvNdotLNdotV) G *= 1/(NdotL*NdotV);
+    return vec3(G);
+}
+
+::end shader

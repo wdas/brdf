@@ -1,0 +1,64 @@
+analytic
+
+::begin parameters
+float roughness 0.0001 .1 0.01
+bool clampLights 0
+float falloff 0 .25 0.1
+bool orient 0
+bool kajiya 0
+::end parameters
+
+
+::begin shader
+
+// Disney anisoSpecular - based on Kajiya-Kay 1989
+
+float smoothstep(float a, float b, float x)
+{
+    if ( a < b ) {
+        if ( x < a ) return 0;
+        if ( x >= b ) return 1;
+        x = (x - a)/(b - a);
+    } else if (a > b) {
+        if ( x <= b ) return 1;
+        if ( x > a ) return 0;
+        x = 1 - (x - b)/(a - b);
+    }
+    else return x < a ? 0.0 : 1.0;
+    return x*x * (3 - 2*x);
+}
+
+
+vec3 reflect(vec3 I, vec3 N)
+{
+    return 2*dot(I,N)*N - I;
+}
+
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float PI = 3.14159265358979323846;
+    vec3 T = orient ? X : Y;
+    float glossiness = roughness != 0 ? (1/roughness) : 999999.0;
+    float LdotN = dot(L,N);
+    float lightAngle = acos(LdotN);
+    float cosAngleLT = dot(L,T);
+    float sinAngleLT = sqrt(1 - (cosAngleLT * cosAngleLT));
+    float cosAngleVT = dot(V,T);
+    float spec = pow(((sinAngleLT * sqrt(1 - (cosAngleVT * cosAngleVT)))
+                      - (cosAngleLT * cosAngleVT)),
+                     glossiness);
+
+    if (kajiya) {
+        vec3 R = reflect(L,N);
+        float t = acos(dot(L,T)) - acos(dot(R,T));
+        spec = pow(cos(t), glossiness);
+    }
+
+    if (clampLights) {
+        spec *= smoothstep(0.0, falloff*0.5*PI, 0.5*PI-lightAngle);
+    }
+    return vec3(spec);
+}
+
+::end shader

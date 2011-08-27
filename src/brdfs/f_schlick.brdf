@@ -1,0 +1,33 @@
+analytic
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float ior 1 3 1.2
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever other functions you want too). 
+
+::begin shader
+
+float Fresnel(float f0, float u)
+{
+    return f0 + (1-f0) * pow(1-u, 5);
+}
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    vec3 H = normalize(L+V);
+    float f0 = pow((ior-1)/(ior+1), 2);
+    float F = Fresnel(f0, dot(L,H));
+    return vec3(F);
+}
+
+::end shader
+
+

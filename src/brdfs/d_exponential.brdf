@@ -1,0 +1,44 @@
+analytic
+
+# Exponential distribution
+
+# normalization constant
+# 1/Integrate[Exp[-(x/c)] Cos[x] Sin[x], {x, 0, Pi/2}, {phi, 0, 2 Pi} , Assumptions -> c > 0]
+# == (1 + 4 c^2)/(2 c^2 (1 + Exp[-(Pi/(2 c))]) Pi)
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float c 0.001 1 .1
+bool normalized 1
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+float Exponential(float c, float t)
+{
+    return exp(-t/c);
+}
+
+const float PI = 3.14159265358979323846;
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    // compute the half vec3
+    vec3 H = normalize( L + V );
+    float NdotH = dot(N, H);
+
+    float D = Exponential(c, acos(NdotH));
+    if (normalized)
+        D *= (1 + 4*c*c)/(2*c*c*(1 + exp(-(PI/(2*c))))*PI);
+    return vec3(D);
+}
+
+::end shader

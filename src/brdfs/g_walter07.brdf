@@ -1,0 +1,34 @@
+analytic
+
+# Walter07 G term (from GGX distribution)
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float alphaG 0.001 1 .1
+bool includeInvNdotLNdotV 0
+::end parameters
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+float G1_GGX(float Ndotv, float alphaG)
+{
+    return 2/(1 + sqrt(1 + alphaG*alphaG * (1-Ndotv*Ndotv)/(Ndotv*Ndotv)));
+}
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float NdotL = dot(N, L);
+    float NdotV = dot(N, V);
+    float G = G1_GGX(NdotL, alphaG) * G1_GGX(NdotV, alphaG);
+    if (includeInvNdotLNdotV) G *= 1/(NdotL*NdotV);
+    return vec3(G);
+}
+
+::end shader

@@ -1,0 +1,58 @@
+analytic
+
+# Ashikhmin Shirley 2000 - Anisotropic phong reflectance model
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float Rs 0 1 .1
+float Rd 0 1 1
+float nu 1 1000 100
+float nv 1 1000 100
+bool isotropic 1
+bool coupled_diffuse 1
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+float sqr( float x )
+{
+    return x*x;
+}
+
+float Fresnel(float f0, float u)
+{
+    // from Schlick
+    return f0 + (1-f0) * pow(1-u, 5);
+}
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float PI = 3.14159265358979323846;
+    vec3 H = normalize(L+V);
+    float HdotV = dot(H,V);
+    float HdotX = dot(H,X);
+    float HdotY = dot(H,Y);
+    float NdotH = dot(N,H);
+    float NdotV = dot(N,V);
+    float NdotL = dot(N,L);
+    
+    float F = Fresnel(Rs, HdotV);
+    float norm_s = sqrt((nu+1)*((isotropic?nu:nv)+1))/(8*PI);
+    float n = isotropic ? nu :(nu*sqr(HdotX) + nv*sqr(HdotY))/(1-sqr(NdotH));
+    float rho_s = norm_s * F * pow(max(NdotH,0), n) / (HdotV * max(NdotV, NdotL));
+
+    float rho_d = 28/(23*PI) * Rd * (1-pow(1-NdotV/2, 5)) * (1-pow(1-NdotL/2, 5));
+    if (coupled_diffuse) rho_d *= (1-Rs);
+
+    return vec3(rho_s + rho_d);
+}
+
+::end shader

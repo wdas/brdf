@@ -1,0 +1,69 @@
+analytic
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float m 0.001 .3 .1
+float f0 0 1 .1
+bool include_F 1
+bool include_G 1
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+float sqr(float x) { return x*x; }
+
+float Beckmann(float m, float t)
+{
+    float M = m*m;
+    float T = t*t;
+    return exp((T-1)/(M*T)) / (M*T*T);
+}
+
+float Fresnel(float f0, float u)
+{
+    // from Schlick
+    return f0 + (1-f0) * pow(1-u, 5);
+}
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    // compute the half vec3
+    vec3 H = normalize( L + V );
+
+    float NdotH = dot(N, H);
+    float VdotH = dot(V, H);
+    float NdotL = dot(N, L);
+    float NdotV = dot(N, V);
+    float oneOverNdotV = 1.0 / NdotV;
+
+    float D = Beckmann(m, NdotH);
+    float F = Fresnel(f0, VdotH);
+
+    NdotH = NdotH + NdotH;
+    float G = (NdotV < NdotL) ? 
+        ((NdotV*NdotH < VdotH) ?
+         NdotH / VdotH :
+         oneOverNdotV)
+        :
+        ((NdotL*NdotH < VdotH) ?
+         NdotH*NdotL / (VdotH*NdotV) :
+         oneOverNdotV);
+
+    if (include_G) G = oneOverNdotV;
+    float val = NdotH < 0 ? 0 : D * G ;
+
+    if (include_F) val *= F;
+
+    val = val / NdotL;
+    return vec3(val);
+}
+
+::end shader

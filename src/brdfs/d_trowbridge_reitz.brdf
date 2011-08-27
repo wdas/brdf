@@ -1,0 +1,45 @@
+analytic
+
+# TrowbridgeReitz (from Blinn 77)
+
+# normalization constant added:
+# 1/Integrate[(c^2 / (Cos[x]^2 (c^2 - 1) + 1))^2 Cos[x] Sin[x], {x, 0, Pi/2}, {phi, 0, 2 Pi}] 
+# == 1/(c^2 Pi)
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float c 0.001 1 .1
+bool normalized 1
+::end parameters
+
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+const float PI = 3.14159265358979323846;
+
+float sqr(float x) { return x*x; }
+
+float TrowbridgeReitz(float c, float cosAlpha)
+{
+    float cSquared = c*c;
+    return sqr(cSquared / (cosAlpha*cosAlpha*(cSquared-1)+1));
+}
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    // compute the half vec3
+    vec3 H = normalize( L + V );
+    float D = TrowbridgeReitz(c, dot(N,H));
+    if (normalized) {
+        D *= 1/(c*c*PI);
+    }
+    return vec3(D);
+}
+
+::end shader

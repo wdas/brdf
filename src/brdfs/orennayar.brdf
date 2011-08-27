@@ -1,0 +1,43 @@
+analytic
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float rho 0 1 .9
+float sigma 0.0 90 30
+::end parameters
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever other functions you want too).
+
+::begin shader
+
+const float PI = 3.14159265358979323846;
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float VdotN = dot(V,N);
+    float LdotN = dot(L,N);
+    float theta_r = acos (VdotN);
+    float sigma2 = pow(sigma*PI/180,2);
+
+    float cos_phi_diff = dot( normalize(V-N*(VdotN)), normalize(L - N*(LdotN)) );
+    float theta_i = acos (LdotN);
+    float alpha = max (theta_i, theta_r);
+    float beta = min (theta_i, theta_r);
+    if (alpha > PI/2) return vec3(0);
+
+    float C1 = 1 - 0.5 * sigma2 / (sigma2 + 0.33);
+    float C2 = 0.45 * sigma2 / (sigma2 + 0.09);
+    if (cos_phi_diff >= 0) C2 *= sin(alpha);
+    else C2 *= (sin(alpha) - pow(2*beta/PI,3));
+    float C3 = 0.125 * sigma2 / (sigma2+0.09) * pow ((4*alpha*beta)/(PI*PI),2);
+    float L1 = rho/PI * (C1 + cos_phi_diff * C2 * tan(beta) + (1 - abs(cos_phi_diff)) * C3 * tan((alpha+beta)/2));
+    float L2 = 0.17 * rho*rho / PI * sigma2/(sigma2+0.13) * (1 - cos_phi_diff*(4*beta*beta)/(PI*PI));
+    return vec3(L1 + L2);
+}
+
+::end shader

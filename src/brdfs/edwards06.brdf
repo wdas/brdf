@@ -1,0 +1,43 @@
+analytic
+
+# Edwards halfway-vector disk 2006
+
+
+::begin parameters
+float n 0 100 10
+float R 0 1 1
+::end parameters
+
+
+::begin shader
+
+const float PI = 3.14159265358979323846;
+
+float lump(vec3 h, float R, float n)
+{
+    return (n+1)/(PI*R*R) * pow(1-dot(h,h)/(R*R), n);
+}
+
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    float NdotV = dot(N,V);
+    float NdotL = dot(N,L);
+
+    if (NdotL < 0 || NdotV < 0) return vec3(0);
+
+    vec3 H = normalize(L+V);
+    float NdotH = dot(N,H);
+    float LdotH = dot(L,H);
+
+    // scaling projection
+    vec3 uH = L+V; // unnormalized H
+    vec3 h = NdotV / dot(N,uH) * uH;
+    vec3 huv = h - NdotV * N;
+
+    // specular term (D and G)
+    float p = lump(huv, R, n);
+    return vec3(p * pow(NdotV, 2) / (4 * NdotL * LdotH * pow(NdotH, 3)));
+}
+
+::end shader

@@ -1,0 +1,33 @@
+analytic
+
+# Kurt10, An Anisotropic BRDF Model for Fitting and Monte Carlo Rendering
+# Note: This model didn't have an explicit G; the G is implied by factoring
+# out the 1/(N.L * N.V) term.
+
+# variables go here...
+# only floats supported right now.
+# [type] [name] [min val] [max val] [default val]
+
+::begin parameters
+float alpha 0 .5 0.5
+bool includeInvNdotLNdotV 0
+::end parameters
+
+# Then comes the shader. This should be GLSL code
+# that defines a function called BRDF (although you can
+# add whatever else you want too, like sqr() below).
+
+::begin shader
+
+vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
+{
+    vec3 H = normalize(L+V);
+    float NdotL = dot(N, L);
+    float NdotV = dot(N, V);
+    float G = NdotL*NdotV/(dot(V,H)*pow(NdotL*NdotV, alpha));
+
+    if (includeInvNdotLNdotV) G *= 1/(NdotL*NdotV);
+    return vec3(G);
+}
+
+::end shader
