@@ -1,3 +1,4 @@
-brdf
+/brdf
+/brdf.app
 *.o
 *.swp
