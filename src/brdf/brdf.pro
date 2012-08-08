@@ -68,6 +68,6 @@ shaderTemplates.path = $$DEST/share/brdf/shaderTemplates
 shaderTemplates.files = ../shaderTemplates/*
 
 pkgconfig.path = $$DEST/$$LIBDIR/pkgconfig
-pkgconfig.files = meander.pc
+pkgconfig.files = brdf.pc
 
 INSTALLS = target brdfs data images probes shaderTemplates pkgconfig
