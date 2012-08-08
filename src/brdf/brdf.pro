@@ -2,14 +2,19 @@ TEMPLATE = app
 CONFIG += qt4  #debug
 
 isEmpty(prefix) {
-	prefix = $$system(pf-makevar --absolute root)
+	prefix = $$system(pf-makevar --absolute root 2>/dev/null)
 }
 isEmpty(prefix) {
-	error("Not inside a project directory!")
+	error("$prefix is undefined. Please pass prefix=<path> to qmake")
 }
 
 DEST = $$prefix
-LIBDIR = $$system(pf-makevar lib)
+isEmpty(LIBDIR) {
+	LIBDIR = $$system(pf-makevar lib 2>/dev/null)
+}
+isEmpty(LIBDIR) {
+	LIBDIR = lib
+}
 
 TARGET = brdf
 target.path = $$DEST/bin
@@ -51,6 +56,10 @@ SOURCES = \
 
 QT   += opengl
 LIBS += -lGLEW
+
+macx {
+	INCLUDEPATH += /usr/X11/include
+}
 
 brdfs.path = $$DEST/share/brdf/brdfs
 brdfs.files = ../brdfs/*
