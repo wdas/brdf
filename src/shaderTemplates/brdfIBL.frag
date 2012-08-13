@@ -362,9 +362,7 @@ void main(void)
     viewVec = vec3(0,0,1);
 
     WorldToLocal = mat3( esTangent, esBitangent, esNormal );
-    LocalToWorld._m00_m10_m20 = WorldToLocal._m00_m01_m02;
-    LocalToWorld._m01_m11_m21 = WorldToLocal._m10_m11_m12;
-    LocalToWorld._m02_m12_m22 = WorldToLocal._m20_m21_m22;
+    LocalToWorld = transpose(WorldToLocal);
 
     envSampleRotMatrix = mat3(envRotMatrix) * WorldToLocal;
 
