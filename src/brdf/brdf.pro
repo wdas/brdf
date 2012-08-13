@@ -1,18 +1,11 @@
 TEMPLATE = app
 CONFIG += qt4  #debug
 
-isEmpty(prefix) {
-	prefix = $$system(pf-makevar --absolute root)
-}
-isEmpty(prefix) {
-	error("Not inside a project directory!")
-}
-
-DEST = $$prefix
-LIBDIR = $$system(pf-makevar lib)
+DEST = 
+LIBDIR = 
 
 TARGET = brdf
-target.path = $$DEST/bin
+target.path = bin
 
 HEADERS = *.h
 SOURCES = \
@@ -51,6 +44,7 @@ SOURCES = \
 
 QT   += opengl
 LIBS += -lGLEW
+DEFINES += PTEX_STATIC NOMINMAX
 
 brdfs.path = $$DEST/share/brdf/brdfs
 brdfs.files = ../brdfs/*

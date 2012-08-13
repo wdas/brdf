@@ -45,7 +45,6 @@ infringement.
 
 #include <GL/glew.h>
 #include <QtGui>
-#include <QtOpenGL>
 #include <QString>
 #include <math.h>
 #include <stdlib.h>
@@ -208,8 +207,8 @@ void IBLWidget::randomizeSampleGroupOrder()
     // now swap random elements a bunch of times to shuffle the pass order
     for( int i = 0; i < stepSize*100; i++ )
     {
-        int a = random() % stepSize;
-        int b = random() % stepSize;
+        int a = rand() % stepSize;
+        int b = rand() % stepSize;
         int temp = sampleGroupOrder[a];
         sampleGroupOrder[a] = sampleGroupOrder[b];
         sampleGroupOrder[b] = temp;
@@ -446,8 +445,8 @@ void IBLWidget::mouseMoveEvent( QMouseEvent* event )
         int d = abs(dx) > abs(dy) ? dx : dy;
         
         lookZoom -= float(d) * lookZoom * 0.05;
-        lookZoom = fmaxf( lookZoom, 0.01f );
-        lookZoom = fminf( lookZoom, 100.0f );
+        lookZoom = std::max<float>( lookZoom, 0.01f );
+        lookZoom = std::min<float>( lookZoom, 100.0f );
     }
 
    
@@ -744,7 +743,7 @@ void IBLWidget::loadIBL( const char* filename )
     printf( "opening %s\n", filename );
 
     // try and load it
-    std::string error;
+    Ptex::String error;
     PtexTexture* tx = PtexTexture::open(filename, error);
     if (!tx) return;
 
