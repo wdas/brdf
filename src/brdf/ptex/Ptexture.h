@@ -41,8 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
   @brief Public API classes for reading, writing, caching, and filtering Ptex files.
 */
 
-// ptex is static because we aren't building a library
-#define PTEX_STATIC
 #if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
 # ifndef PTEXAPI
 #  ifndef PTEX_STATIC

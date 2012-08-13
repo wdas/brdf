@@ -55,7 +55,7 @@ SOURCES = \
 
 
 QT   += opengl
-DEFINES += GLEW_STATIC
+DEFINES += PTEX_STATIC NOMINMAX
 
 macx {
 	INCLUDEPATH += /usr/X11/include
@@ -88,6 +88,7 @@ INSTALLS = target brdfs data images probes shaderTemplates pkgconfig
 
 # Windows cross compile at disney
 linux-mingw32-custom{
+    DEFINES += GLEW_STATIC
     WINDOWS_BUILD=/jobs2/soft/users/aselle/windows-build
     INCLUDEPATH += $$WINDOWS_BUILD/glew-1.9.0/include/
     INCLUDEPATH += $$WINDOWS_BUILD/glut-3.7.6-bin/

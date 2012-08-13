@@ -51,6 +51,9 @@ infringement.
 #include "Plot3DWidget.h"
 #include "geodesicHemisphere.h"
 
+#ifndef M_PI_2
+#define M_PI_2 1.57079632679489661923
+#endif //M_PI_2
 
 Plot3DWidget::Plot3DWidget( QWidget *parent, std::vector<brdfPackage> bList )
     : SharedContextGLWidget(parent)
@@ -163,8 +166,8 @@ void Plot3DWidget::paintGL()
     
 
     // try and set some better viewing planes based on zoom factor... this only kinda works
-    float nearPlane = fminf( lookZoom*0.1, 0.5 );
-    float farPlane =  fminf( lookZoom*10.0, 100.0 );
+    float nearPlane = std::min<float>( lookZoom*0.1, 0.5 );
+    float farPlane =  std::min<float>( lookZoom*10.0, 100.0 );
 
 
     glMatrixMode(GL_PROJECTION);
@@ -293,8 +296,8 @@ void Plot3DWidget::mouseMoveEvent(QMouseEvent *event)
         int d = abs(dx) > abs(dy) ? dx : dy;
         
         lookZoom -= float(d) * lookZoom * 0.05;
-        lookZoom = fmaxf( lookZoom, 0.01f );
-        lookZoom = fminf( lookZoom, 100.0f );
+        lookZoom = std::max<float>( lookZoom, 0.01f );
+        lookZoom = std::min<float>( lookZoom, 100.0f );
     }
     
     
@@ -350,7 +353,7 @@ void Plot3DWidget::makeGeodesicHemisphereVBO()
     int memIndex = 0;
     
     // allocate enough memory for all the vertices in the hemisphere
-    numTrianglesInHemisphere = 40 * int(pow(4.0, float(numSubdivisions)));
+    numTrianglesInHemisphere = 40 * int(powf(4.0, float(numSubdivisions)));
     hemisphereVertices = new float[ numTrianglesInHemisphere * 3 * 3 ];
     //printf( "numTrianglesInHemisphere: %d\n", numTrianglesInHemisphere );
     
