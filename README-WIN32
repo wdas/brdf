@@ -1,0 +1,13 @@
+How to compile BRDF Explorer for Windows
+========================================
+
+The following external dependencies are required (versions are ones that I used, other might also work):
+	- Qt 4.8.1
+	- GLEW 1.9.0
+	- ZLib 1.2.5
+	- GLUT 3.7
+
+Make sure that qmake is in your PATH. Also put GLEW, ZLib and GLUT include and library directories somewhere VC can find them.
+
+Use Visual Studio 2010 command prompt. Navigate to "brdf/src/brdf" directory and run "qmake -tp vc", this will generate the vcxproj file.
+Navigate to "brdf" directory and run "qmake -tp vc", this will generate sln file which should just build (as long as external dependencies are satisfied).
