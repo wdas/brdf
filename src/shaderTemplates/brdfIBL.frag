@@ -151,7 +151,7 @@ vec2 vectorToUV( vec3 rsReflVector )
     {
         uv = -rsReflVector.zy / rsReflVector.x;
         uv.y *= -sign(rsReflVector.x);
-        face = 0.0 + step(rsReflVector.x,0.0);
+        face = 0.0 + step(rsReflVector.x,0);
     }
 
     // y vector?
@@ -159,7 +159,7 @@ vec2 vectorToUV( vec3 rsReflVector )
     {
         uv = -rsReflVector.xz / rsReflVector.y;
         uv.x *= -sign(rsReflVector.y);
-        face = 2.0 + step(rsReflVector.y,0.0);
+        face = 2.0 + step(rsReflVector.y,0);
     }
 
     // z vector?
@@ -167,14 +167,14 @@ vec2 vectorToUV( vec3 rsReflVector )
     {
         uv = rsReflVector.xy / rsReflVector.z;
         uv.y *= sign(rsReflVector.z);
-        face = 4.0 + step(rsReflVector.z,0.0);
+        face = 4.0 + step(rsReflVector.z,0);
     }
 
     // transform the sampling location into [0..1]
     uv = uv * 0.5 + vec2(0.5);
 
     // transform the coordinate so we're reading from the correct envRotMatrixface
-    uv.x = (uv.x + face) * (1.0/6.0);
+    uv.x = (uv.x + face) * (1.0/6);
     return uv;
 }
 
@@ -213,10 +213,10 @@ float hammersleySample(uint bits, uint seed)
 
 float warpSample1D( sampler2D tex, float texDim, float u, float v, out float probInv )
 {
-    float invTexDim = 1.0/texDim;
+    float invTexDim = 1/texDim;
 
     // evaluate approximate inverse cdf
-    // Note: cvs are at pixel centers with implied end points at (0.0,0.0) and (1.0,1.0)
+    // Note: cvs are at pixel centers with implied end points at (0,0) and (1,1)
     // data[0] corresponds to u = 0.5/texDim
     float uN = u * texDim - 0.5;
     float ui = floor(uN);
@@ -225,11 +225,11 @@ float warpSample1D( sampler2D tex, float texDim, float u, float v, out float pro
     // sample texture at texel centers (data[ui] = texture((ui+.5)/texDim))
     float t0 = (ui+.5)*invTexDim, t1 = (ui+1.5)*invTexDim;
 
-    float cdf0 = t0 < 0.0 ? // data[-1] is -data[0]  (reflect around (0,0))
+    float cdf0 = t0 < 0 ? // data[-1] is -data[0]  (reflect around (0,0))
         -texture2D( tex, vec2(.5 * invTexDim, v) ).r :
         texture2D( tex, vec2(t0, v) ).r;
-    float cdf1 = t1 > 1.0 ? // data[texDim] = 2.0-data[texDim-1]  (reflect around (1,1))
-        2.0-texture2D( tex, vec2(1.0 - .5 * invTexDim, v) ).r :
+    float cdf1 = t1 > 1 ? // data[texDim] = 2-data[texDim-1]  (reflect around (1,1))
+        2-texture2D( tex, vec2(1 - .5 * invTexDim, v) ).r :
         texture2D( tex, vec2(t1, v) ).r;
 
     // infer 1/pdf from slope of inverse cdf
@@ -255,7 +255,7 @@ vec2 warpSample( vec2 uv, out float probInv )
 
 vec4 envMapSample( float u, float v )
 {
-    float probInv = 1.0;
+    float probInv = 1;
     vec2 uv = vec2(u,v);
 
     if (useIBLImportance > .5)
@@ -266,20 +266,20 @@ vec4 envMapSample( float u, float v )
     vec3 tsSampleDir = normalize(LocalToWorld * mat3(envRotMatrixInverse) * esSampleDir);
 
     // cosine weight
-    float cosine = max(0.0,dot( tsSampleDir, vec3(0.0,0.0,1.0)));
-    if (cosine <= 0.0) return vec4(vec3(0.0), 1.0);
+    float cosine = max(0,dot( tsSampleDir, vec3(0,0,1)));
+    if (cosine <= 0) return vec4(vec3(0), 1.0);
 
     // since we're working in tangent space, the basis vectors can be nice and easy and hardcoded
-    vec3 brdf = max( BRDF( tsSampleDir, tsViewVec, vec3(0.0,0.0,1.0), vec3(1.0,0.0,0.0), vec3(0.0,1.0,0.0) ), vec3(0.0) );
+    vec3 brdf = max( BRDF( tsSampleDir, tsViewVec, vec3(0,0,1), vec3(1,0,0), vec3(0,1,0) ), vec3(0.0) );
 
     // sample env map
     //vec3 envSample = sampleEnvMap( uv );
 
-    vec3 envSample = textureCubeLod( envCube, esSampleDir, 0.0 ).rgb;
+    vec3 envSample = textureCubeLod( envCube, esSampleDir, 0 ).rgb;
 
     // dA (area of cube) = (6*2*2)/N  (Note: divide by N happens later)
     // dw = dA / r^3 = 24 * pow(x*x + y*y + z*z, -1.5) (see pbrt v2 p 947).
-    float dw = 24.0 * pow(esSampleDir.x*esSampleDir.x +
+    float dw = 24 * pow(esSampleDir.x*esSampleDir.x +
                         esSampleDir.y*esSampleDir.y +
                         esSampleDir.z*esSampleDir.z, -1.5);
 
@@ -287,7 +287,7 @@ vec4 envMapSample( float u, float v )
 
     // hack - clamp outliers to eliminate hot spot samples
     if (useIBLImportance > .5)
-        result = min(result, 50.0);
+        result = min(result, 50);
 
     return vec4(result, 1.0 );
 }
@@ -316,7 +316,7 @@ vec4 computeIBL()
             //result += envMapSample( uu, vv );
         }
         
-        result = vec4(0.0,1.0,0.0,1.0);
+        result = vec4(0,1,0,1);
     }
     
     // multiple importance sampling
@@ -331,7 +331,7 @@ vec4 computeIBL()
             //result += envMapSample( uu, vv );
         }
         
-        result = vec4(1.0,0.0,0.0,1.0);
+        result = vec4(1,0,0,1);
     }
     
     // importance sample the IBL, or don't importance sample at all
@@ -359,7 +359,7 @@ void main(void)
     esTangent = normalize( gl_TexCoord[1].xyz );
     esBitangent = normalize( gl_TexCoord[2].xyz );
     //viewVec = -normalize(gl_TexCoord[3].xyz);
-    viewVec = vec3(0.0,0.0,1.0);
+    viewVec = vec3(0,0,1);
 
     WorldToLocal = mat3( esTangent, esBitangent, esNormal );
     LocalToWorld = transpose(WorldToLocal);
