@@ -10,4 +10,4 @@ The following external dependencies are required (versions are ones that I used,
 Make sure that qmake is in your PATH. Also put GLEW, ZLib and GLUT include and library directories somewhere VC can find them.
 
 Open Visual Studio 2010 command prompt and navigate to brdf project root directory.
-Run "qmake -recursive -tp vc prefix=foo", this will generate the vcxproj and sln files.
+Run "qmake -r -tp vc prefix=foo", this will generate the vcxproj and sln files.
