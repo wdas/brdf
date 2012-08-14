@@ -46,7 +46,7 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
     // fresnel
     float c = VdotH;
     float g = sqrt(ior*ior + c*c - 1);
-    float F = useFresnel ? 0.5 * pow(g-c,2) / pow(g+c,2) * (1 + pow(c*(g+c)-1,2) / pow(c*(g-c)+1,2)) : 1;
+    float F = useFresnel ? 0.5 * pow(g-c,2) / pow(g+c,2) * (1 + pow(c*(g+c)-1,2) / pow(c*(g-c)+1,2)) : 1.0;
 
     float val = Kd/PI + Ks * D * G * F / (4 * NdotL * NdotV);
     return vec3(val);
