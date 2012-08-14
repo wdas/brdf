@@ -1,11 +1,23 @@
 TEMPLATE = app
 CONFIG += qt4  #debug
 
-DEST = 
-LIBDIR = 
+isEmpty(prefix) {
+	prefix = $$system(pf-makevar --absolute root 2>/dev/null)
+}
+isEmpty(prefix) {
+	error("$prefix is undefined. Please pass prefix=<path> to qmake")
+}
+
+DEST = $$prefix
+isEmpty(LIBDIR) {
+	LIBDIR = $$system(pf-makevar lib 2>/dev/null)
+}
+isEmpty(LIBDIR) {
+	LIBDIR = lib
+}
 
 TARGET = brdf
-target.path = bin
+target.path = $$DEST/bin
 
 HEADERS = *.h
 SOURCES = \
@@ -46,6 +58,10 @@ QT   += opengl
 LIBS += -lGLEW
 DEFINES += PTEX_STATIC NOMINMAX
 
+macx {
+	INCLUDEPATH += /usr/X11/include
+}
+
 brdfs.path = $$DEST/share/brdf/brdfs
 brdfs.files = ../brdfs/*
 
@@ -62,6 +78,6 @@ shaderTemplates.path = $$DEST/share/brdf/shaderTemplates
 shaderTemplates.files = ../shaderTemplates/*
 
 pkgconfig.path = $$DEST/$$LIBDIR/pkgconfig
-pkgconfig.files = meander.pc
+pkgconfig.files = brdf.pc
 
 INSTALLS = target brdfs data images probes shaderTemplates pkgconfig
