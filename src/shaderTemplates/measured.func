@@ -64,7 +64,7 @@ int phi_diff_index(float phi_diff)
     
     // In: phi_diff in [0 .. pi]
     // Out: tmp in [0 .. 179]
-    return clamp(int(phi_diff * (1.0/M_PI * (BRDF_SAMPLING_RES_PHI_D / 2.0))), 0, BRDF_SAMPLING_RES_PHI_D / 2 - 1);
+    return clamp(int(phi_diff * (1.0/M_PI * (BRDF_SAMPLING_RES_PHI_D / 2))), 0, BRDF_SAMPLING_RES_PHI_D / 2 - 1);
 }
 
 

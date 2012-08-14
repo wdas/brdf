@@ -217,7 +217,7 @@ float warpSample1D( sampler2D tex, float texDim, float u, float v, out float pro
 
     // evaluate approximate inverse cdf
     // Note: cvs are at pixel centers with implied end points at (0.0,0.0) and (1.0,1.0)
-    // data[0.0] corresponds to u = 0.5/texDim
+    // data[0] corresponds to u = 0.5/texDim
     float uN = u * texDim - 0.5;
     float ui = floor(uN);
     float frac = uN - ui;
