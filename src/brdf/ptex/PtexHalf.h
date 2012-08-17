@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
   @brief Half-precision floating-point type.
 */
 
+// this is extracted from library, so it should be static always
+#define PTEX_STATIC
+
 #ifndef PTEXAPI
 #  if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
 #    ifndef PTEX_STATIC

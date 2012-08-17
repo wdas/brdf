@@ -156,7 +156,7 @@ void DGLFrameBuffer::bind()
     
     // First we bind the FBO so we can render to it
     glBindFramebuffer(GL_FRAMEBUFFER, _fboID);
-    
+  
     // adjust the viewport for this FBO
     glPushAttrib( GL_VIEWPORT_BIT );
     glViewport( 0, 0, _width, _height );

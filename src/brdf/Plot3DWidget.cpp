@@ -45,7 +45,6 @@ infringement.
 
 #include <GL/glew.h>
 #include <QtGui>
-#include <QtOpenGL>
 #include <QString>
 #include <math.h>
 #include "DGLShader.h"
