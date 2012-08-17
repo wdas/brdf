@@ -555,7 +555,14 @@ protected:
             else buffer = 0;
             return (Handle) fp;
         }
-        virtual void seek(Handle handle, int64_t pos) { fseeko((FILE*)handle, pos, SEEK_SET); }
+        virtual void seek(Handle handle, int64_t pos) { 
+#ifdef WIN32
+            fseek((FILE*)handle,pos,SEEK_SET);
+#else
+            fseeko((FILE*)handle, pos, SEEK_SET); 
+#endif
+
+        }
         virtual size_t read(void* buffer, size_t size, Handle handle) {
             return fread(buffer, size, 1, (FILE*)handle) == 1 ? size : 0;
         }

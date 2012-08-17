@@ -80,7 +80,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	return 0;
     }
     if (_header.version != 1) {
-	char ver[21]; snprintf(ver, 20, "%d", _header.version);
+	char ver[21]; sprintf(ver, "%d", _header.version);
 	std::string errstr = "Unsupported ptex file version (";
 	errstr += ver; errstr += "): "; errstr += path;
 	error = errstr.c_str();

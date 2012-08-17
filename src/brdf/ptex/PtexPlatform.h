@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #define NOMINMAX 1
 
 // windows - defined for both Win32 and Win64
-#include <Windows.h>
+#include <windows.h>
 #include <malloc.h>
 #include <io.h>
 #include <tchar.h> 

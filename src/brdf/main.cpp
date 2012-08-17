@@ -51,7 +51,14 @@ infringement.
 #include "ParameterWindow.h"
 #include "Paths.h"
 
+#include <iostream>
+#include <sstream>
+#ifdef WIN32
+#include <windows.h>
+#include <fcntl.h>
+#endif
 
+#define BRDF_VERSION "1.0.0"
 
 bool checkTeapot()
 {
@@ -67,6 +74,24 @@ bool checkTeapot()
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+
+#ifdef WIN32
+    // Make sure there is a console to get our stdout,stderr information
+    AllocConsole();
+    HANDLE stdOutHandle=GetStdHandle(STD_OUTPUT_HANDLE);
+    int hConHandle=_open_osfhandle((intptr_t)stdOutHandle,_O_TEXT);
+    FILE* fp=_fdopen((int)hConHandle,"w");
+    *stdout=*fp;
+    setvbuf(stdout,NULL,_IONBF,0);
+    HANDLE stdErrHandle=GetStdHandle(STD_ERROR_HANDLE);
+    int hConHandleErr=_open_osfhandle((intptr_t) stdOutHandle,_O_TEXT);
+    FILE* fperr=_fdopen( (int)hConHandleErr,"w");
+    *stderr=*fperr;
+    setvbuf(stderr,NULL,_IONBF,0);
+    std::ios::sync_with_stdio();
+    std::cerr<<"BRDF Version "<<BRDF_VERSION<<std::endl;
+//    std::cerr<<"stdout: BRDF Version "<<BRDF_VERSION<<std::endl;
+#endif
 
     // make sure we can open the data files
     if( !checkTeapot() ) {
