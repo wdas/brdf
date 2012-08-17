@@ -74,6 +74,7 @@ Index
 15	  reserved
 */
 
+#include <cstdlib>
 #include <string>
 #include <fstream>
 #include <string.h>

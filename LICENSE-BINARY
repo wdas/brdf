@@ -1,0 +1,12 @@
+BRDF Explorer
+Copyright Disney Enterprises, Inc. All rights reserved.
+
+See LICENSE for the specific application components license.
+Source code is available at http://disneyanimation.com/
+http://www.disneyanimation.com/technology/brdf.html
+
+Developed with Nokia Qt4.  Qt4 libraries are unmodified and
+dynamically linked LGPL versions. Binaries and source are available at
+http://qt.nokia.com/products.
+
+Windows binary is cross compiled using ming32.

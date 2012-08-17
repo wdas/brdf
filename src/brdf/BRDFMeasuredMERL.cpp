@@ -43,6 +43,7 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
+#include <cstdlib>
 #include <string>
 #include <fstream>
 #include <string.h>
