@@ -225,10 +225,18 @@ public:
 	_searchdirs.clear();
 	char* buff = strdup(path);
 	char* pos = 0;
+#ifdef WIN32
+	char* token = strtok(buff, ":");
+#else
 	char* token = strtok_r(buff, ":", &pos);
+#endif
 	while (token) {
 	    if (token[0]) _searchdirs.push_back(token);
+#ifdef WIN32
+	    token = strtok(0, ":");
+#else
 	    token = strtok_r(0, ":", &pos);
+#endif
 	}
 	free(buff);
     }

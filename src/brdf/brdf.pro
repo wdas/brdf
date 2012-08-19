@@ -81,3 +81,20 @@ pkgconfig.path = $$DEST/$$LIBDIR/pkgconfig
 pkgconfig.files = brdf.pc
 
 INSTALLS = target brdfs data images probes shaderTemplates pkgconfig
+
+
+!linux-mingw32-custom{
+    LIBS += -lGLEW
+}
+
+# Windows cross compile at disney
+linux-mingw32-custom{
+    WINDOWS_BUILD=/jobs2/soft/users/aselle/windows-build
+    INCLUDEPATH += $$WINDOWS_BUILD/glew-1.9.0/include/
+    INCLUDEPATH += $$WINDOWS_BUILD/glut-3.7.6-bin/
+    LIBS += -L$$WINDOWS_BUILD/glut-3.7.6-bin/
+    LIBS += -L$$WINDOWS_BUILD/glew-1.9.0/lib/
+    LIBS += -static-libgcc
+    LIBS += -lglew32s
+
+}
