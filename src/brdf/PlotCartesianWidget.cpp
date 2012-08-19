@@ -45,7 +45,6 @@ infringement.
 
 #include <GL/glew.h>
 #include <QtGui>
-#include <QtOpenGL>
 #include <QString>
 #include <math.h>
 #include "DGLShader.h"
@@ -362,8 +361,8 @@ void PlotCartesianWidget::mouseMoveEvent(QMouseEvent *event)
   {
     int d = abs(dx) > abs(dy) ? dx : dy;
     scaleX += float(d) * scaleX * 0.05;
-    scaleX = fmaxf( scaleX, 0.01 );
-    scaleX = fminf( scaleX, 50.0 );
+    scaleX = std::max<float>( scaleX, 0.01 );
+    scaleX = std::min<float>( scaleX, 50.0 );
   }
 
   // control+right adjusts the x-scale of the graph
@@ -371,8 +370,8 @@ void PlotCartesianWidget::mouseMoveEvent(QMouseEvent *event)
   {
     int d = abs(dx) > abs(dy) ? dx : dy;
     scaleY += float(d) * scaleY * 0.05;
-    scaleY = fmaxf( scaleY, 0.01 );
-    scaleY = fminf( scaleY, 50.0 );
+    scaleY = std::max<float>( scaleY, 0.01 );
+    scaleY = std::min<float>( scaleY, 50.0 );
   }
 
   // left mouse button adjusts the viewing dir
@@ -393,8 +392,8 @@ void PlotCartesianWidget::mouseMoveEvent(QMouseEvent *event)
     int d = abs(dx) > abs(dy) ? dx : dy;
 
     lookZoom -= float(d) * lookZoom * 0.05;
-    lookZoom = fmaxf( lookZoom, 0.01f );
-    lookZoom = fminf( lookZoom, 50.0f );
+    lookZoom = std::max<float>( lookZoom, 0.01f );
+    lookZoom = std::min<float>( lookZoom, 50.0f );
   }
 
 

@@ -55,7 +55,8 @@ SOURCES = \
 
 
 QT   += opengl
-DEFINES += GLEW_STATIC
+LIBS += -lGLEW
+DEFINES += PTEX_STATIC NOMINMAX
 
 macx {
 	INCLUDEPATH += /usr/X11/include

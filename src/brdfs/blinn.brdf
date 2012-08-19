@@ -45,7 +45,7 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
     float g = sqrt(ior*ior + c*c - 1);
     float F = 0.5 * pow(g-c,2) / pow(g+c,2) * (1 + pow(c*(g+c)-1,2) / pow(c*(g-c)+1,2));
 
-    float val = NdotH < 0 ? 0 : D * G * (include_Fresnel ? F : 1);
+    float val = NdotH < 0 ? 0.0 : D * G * (include_Fresnel ? F : 1.0);
 
     if (divide_by_NdotL)
         val = val / dot(N,L);

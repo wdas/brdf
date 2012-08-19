@@ -2,3 +2,16 @@
 moc_*
 Makefile
 Linux-*
+*.dll
+*.exe
+*.filters
+*.ipch
+*.opensdf
+*.pdb
+*.sdf
+*.sln
+*.suo
+*.user
+*.vcxproj
+src/brdf/release
+src/brdf/debug

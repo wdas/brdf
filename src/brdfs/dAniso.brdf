@@ -16,12 +16,12 @@ bool kajiya 0
 float smoothstep(float a, float b, float x)
 {
     if ( a < b ) {
-        if ( x < a ) return 0;
-        if ( x >= b ) return 1;
+        if ( x < a ) return 0.0;
+        if ( x >= b ) return 1.0;
         x = (x - a)/(b - a);
     } else if (a > b) {
-        if ( x <= b ) return 1;
-        if ( x > a ) return 0;
+        if ( x <= b ) return 1.0;
+        if ( x > a ) return 0.0;
         x = 1 - (x - b)/(a - b);
     }
     else return x < a ? 0.0 : 1.0;
