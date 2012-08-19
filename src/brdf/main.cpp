@@ -56,6 +56,7 @@ infringement.
 #ifdef WIN32
 #include <windows.h>
 #include <fcntl.h>
+#include <io.h>
 #endif
 
 #define BRDF_VERSION "1.0.0"
