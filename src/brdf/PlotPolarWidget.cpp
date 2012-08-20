@@ -45,7 +45,6 @@ infringement.
 
 #include <GL/glew.h>
 #include <QtGui>
-#include <QtOpenGL>
 #include <QString>
 #include <math.h>
 #include "DGLShader.h"
@@ -251,8 +250,8 @@ void PlotPolarWidget::mouseMoveEvent(QMouseEvent *event)
 		int d = abs(dx) > abs(dy) ? dx : dy;
 		
 		lookZoom -= float(d) * lookZoom * 0.05;
-        lookZoom = fmaxf( lookZoom, 0.01f );
-        lookZoom = fminf( lookZoom, 50.0f );
+        lookZoom = std::max<float>( lookZoom, 0.01f );
+        lookZoom = std::min<float>( lookZoom, 50.0f );
     }
 
 

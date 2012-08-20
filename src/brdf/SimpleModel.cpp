@@ -142,12 +142,12 @@ bool SimpleModel::dataPass( FILE* file, std::vector<float3>& vertices, std::vect
         if( line[0] == 'v' && line[1] == ' ' ) {
             float3 data;
             if( sscanf(line, "v %f %f %f", &data.x, &data.y, &data.z) == 3 ) {
-                maxX = std::max( maxX, data.x );
-                minX = std::min( minX, data.x );
-                maxY = std::max( maxY, data.y );
-                minY = std::min( minY, data.y );
-                maxZ = std::max( maxZ, data.z );
-                minZ = std::min( minZ, data.z );
+                maxX = std::max<float>( maxX, data.x );
+                minX = std::min<float>( minX, data.x );
+                maxY = std::max<float>( maxY, data.y );
+                minY = std::min<float>( minY, data.y );
+                maxZ = std::max<float>( maxZ, data.z );
+                minZ = std::min<float>( minZ, data.z );
                 vertices.push_back( data );
             }
         }

@@ -66,7 +66,7 @@ float smithG_GGX(float NdotL, float NdotV, float alphaG)
 float schlickG1(float v, float m)
 {
     float k = sqrt(2*m*m/PI);
-    return v > 0 ? v/(v-k*v + k) : 0;
+    return v > 0 ? v/(v-k*v + k) : 0.0;
 }
 
 float schlickG(float NdotL, float NdotV, float m)
@@ -133,11 +133,11 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
     float D =
         useBeckmannD ? Beckmann(NdotH, specwidth) :
         useTrowbridgeReitzD ? NormalizedTrowbridgeReitz(NdotH, specwidth) :
-        1;
+        1.0;
 
     float F =
         useSchlickF ? SchlickFresnel(F0, 1, LdotH) :
-        1;
+        1.0;
 
     float G =
         useSmithG ? smithG_GGX(NdotL, NdotV, specwidth) / (4*NdotL*NdotV) :
@@ -150,7 +150,7 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
         useKurtG ? kurtG(NdotL, NdotV, LdotH, kurtAlpha) :
         useKelemenG ? kelemenG(dot(L,V)) :
         useDuerG ? duerG(L, V, N) :
-        1;
+        1.0;
 
     return vec3(Ks*D*F*G) + vec3(Kd,0,0);
 }

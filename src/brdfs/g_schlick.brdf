@@ -21,7 +21,7 @@ float PI = 3.14159265358979323846;
 float G(float v, float m)
 {
     float k = sqrt(2*m*m/PI);
-    return v > 0 ? v/(v-k*v + k) : 0;
+    return v > 0 ? v/(v-k*v + k) : 0.0;
 }
 
 vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )

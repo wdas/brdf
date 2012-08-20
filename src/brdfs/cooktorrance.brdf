@@ -58,7 +58,7 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
          oneOverNdotV);
 
     if (include_G) G = oneOverNdotV;
-    float val = NdotH < 0 ? 0 : D * G ;
+    float val = NdotH < 0 ? 0.0 : D * G ;
 
     if (include_F) val *= F;
 
