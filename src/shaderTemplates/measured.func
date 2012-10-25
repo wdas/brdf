@@ -92,28 +92,28 @@ int theta_diff_index(float theta_diff)
 
 vec3 BRDF( vec3 toLight, vec3 toViewer, vec3 normal, vec3 tangent, vec3 bitangent )
 {
-    vec3 half = normalize(toLight + toViewer);
-    float theta_half = acos(clamp(dot(normal, half), 0, 1));
-    float theta_diff = acos(clamp(dot(half, toLight), 0, 1));
+    vec3 H = normalize(toLight + toViewer);
+    float theta_H = acos(clamp(dot(normal, H), 0, 1));
+    float theta_diff = acos(clamp(dot(H, toLight), 0, 1));
     float phi_diff=0;
 
     if (theta_diff < 1e-3) {
         // phi_diff indeterminate, use phi_half instead
         phi_diff = atan(clamp(-dot(toLight, bitangent), -1, 1), clamp(dot(toLight, tangent), -1, 1));
     }
-    else if (theta_half > 1e-3) {
+    else if (theta_H > 1e-3) {
         // use Gram-Schmidt orthonormalization to find diff basis vectors
-        vec3 u = -normalize(normal - dot(normal,half) * half);
-        vec3 v = cross(half, u);
+        vec3 u = -normalize(normal - dot(normal,H) * H);
+        vec3 v = cross(H, u);
         phi_diff = atan(clamp(dot(toLight,v), -1, 1), clamp(dot(toLight,u), -1, 1));
     } 
-    else theta_half = 0;
+    else theta_H = 0;
 
     // Find index.
     // Note that phi_half is ignored, since isotropic BRDFs are assumed
     int ind = phi_diff_index(phi_diff) +
         theta_diff_index(theta_diff) * BRDF_SAMPLING_RES_PHI_D / 2 +
-        theta_half_index(theta_half) * BRDF_SAMPLING_RES_PHI_D / 2 *
+        theta_half_index(theta_H) * BRDF_SAMPLING_RES_PHI_D / 2 *
         BRDF_SAMPLING_RES_THETA_D;
 
     int redIndex = ind;
