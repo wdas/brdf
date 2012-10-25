@@ -171,6 +171,18 @@ bool DGLShader::compileAndAttachShader( GLuint& shaderID, GLenum shaderType, con
             else
                 printf( "GLSL %s Compile Error (no shader file)\n", shaderTypeStr );
             printf( "================================================================================\n" );
+            
+            // also display shader source
+            {
+                GLint length;
+                glGetShaderiv(shaderID, GL_SHADER_SOURCE_LENGTH, &length);
+                GLchar *source= new GLchar [length];
+                glGetShaderSource(shaderID, length, NULL, source);
+                
+                printf("%s\n", source);
+                delete [] source;
+            }
+            
             printf( "%s\n", errorMessage );
             printf( "\n" );
             

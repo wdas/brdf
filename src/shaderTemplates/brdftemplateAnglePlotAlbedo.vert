@@ -88,7 +88,7 @@ float rand(vec2 n) {
 //Sampling functions return costheta/pdf
 //As passed in, view=vec3(cos(phi), sin(phi), 1.0)
 float CosinePDF(in vec3 incident, in vec3 view) {
-  if (view.z < 0) return 0;
+  if (view.z < 0.0) return 0.0;
   return view.z/PI_;
 }
 
@@ -125,9 +125,9 @@ float PolarSample(in float x1, in vec3 incident, inout vec3 view) {
 
 
 float BlinnPDF(in float exponent, in vec3 incident, in vec3 view) {
-  vec3 half = normalize(incident+view);
-  float costhetah = half.z;
-  float costhetad = dot(view, half);
+  vec3 H = normalize(incident+view);
+  float costhetah = H.z;
+  float costhetad = dot(view, H);
   if (costhetad < 0) return 0.0;
   return (exponent+1.0)*pow(costhetah,exponent)/(PI_*8.0*costhetad);
 }
@@ -140,7 +140,7 @@ float BlinnSample(in float exponent, in float x1, in vec3 incident, inout vec3 v
   if (halfvector.z*incident.z < 0) halfvector = -1.0*halfvector;
   view = -incident + 2.0*dot(incident, halfvector)*halfvector;
   float pdfinv = PI_*8.0*dot(incident, halfvector)/((exponent+1.0)*pow(costhetah,exponent));
-  if (view.z < 0) return 0;
+  if (view.z < 0.0) return 0.0;
   return view.z*pdfinv;
 }
 
