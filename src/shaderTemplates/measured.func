@@ -92,9 +92,9 @@ int theta_diff_index(float theta_diff)
 
 vec3 BRDF( vec3 toLight, vec3 toViewer, vec3 normal, vec3 tangent, vec3 bitangent )
 {
-    vec3 half = normalize(toLight + toViewer);
-    float theta_half = acos(clamp(dot(normal, half), 0, 1));
-    float theta_diff = acos(clamp(dot(half, toLight), 0, 1));
+    vec3 half_vector = normalize(toLight + toViewer);
+    float theta_half = acos(clamp(dot(normal, half_vector), 0, 1));
+    float theta_diff = acos(clamp(dot(half_vector, toLight), 0, 1));
     float phi_diff=0;
 
     if (theta_diff < 1e-3) {
@@ -103,8 +103,8 @@ vec3 BRDF( vec3 toLight, vec3 toViewer, vec3 normal, vec3 tangent, vec3 bitangen
     }
     else if (theta_half > 1e-3) {
         // use Gram-Schmidt orthonormalization to find diff basis vectors
-        vec3 u = -normalize(normal - dot(normal,half) * half);
-        vec3 v = cross(half, u);
+        vec3 u = -normalize(normal - dot(normal,half_vector) * half_vector);
+        vec3 v = cross(half_vector, u);
         phi_diff = atan(clamp(dot(toLight,v), -1, 1), clamp(dot(toLight,u), -1, 1));
     } 
     else theta_half = 0;
