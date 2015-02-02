@@ -83,7 +83,7 @@ INSTALLS = target brdfs data images probes shaderTemplates pkgconfig
 
 
 !linux-mingw32-custom{
-    LIBS += -lGLEW
+    LIBS += -lz -lGLEW -lGLU -lglut
 }
 
 # Windows cross compile at disney
