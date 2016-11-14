@@ -2,7 +2,7 @@
 Name:           brdf
 Version:        __VERSION__
 Release:        __RELEASE__%{?dist}
-Summary:        BRDF Viewer
+Summary:        BRDF Explorer
 
 Group:          Applications/Multimedia
 License:        Disney
@@ -24,7 +24,7 @@ prefix:         %{_prefix}
 BuildRoot:      %{_topdir}/BUILDROOT/%{name}-%{version}
 
 %description
-The BRDF viewer is the best way to quickly get a feel for
+The BRDF Explorer is the best way to quickly get a feel for
 how shader controls work and quickly dial in material settings
 
 %prep

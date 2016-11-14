@@ -1,10 +1,10 @@
-The Disney BRDF Viewer is an application that allows the development and analysis
+The Disney BRDF Explorer is an application that allows the development and analysis
 of bidirectional reflectance distribution functions (BRDFs). It can load and plot 
 analytic BRDF functions (coded as snippets of OpenGL GLSL programs), measured
 material data from the MERL database, and anisotropic measured material data from
 MIT CSAIL.
 
-Most of the viewer should be (hopefully) self explanatory, so the goal here is to
+Most of the application should be (hopefully) self explanatory, so the goal here is to
 document the less obvious bits of usage, as well as providing some useful info.
 
 WHICH BRDF(S) YOU'RE SEEING
@@ -32,7 +32,7 @@ zooms in and out. Double clicking resets to the default view.
 
 PARAMETER SLIDERS
 ------------------------------------
-Parameters sliders (a slider plus a text entry box) are all over the BRDF viewer. To
+Parameters sliders (a slider plus a text entry box) are all over the application. To
 reset one to its default value, Control+Click in the text box.
 
 
@@ -71,7 +71,7 @@ probe (which must be in ptex format).
 ALBEDO VIEW
 ------------------------------------
 Albedo computation by brute force sampling proved too expensive to do interactively,
-so the viewer can use several different sampling strategies to compute the albedo.
+so the application can use several different sampling strategies to compute the albedo.
 Use the combo box on the right to choose between these sampling strategies. The
 Resample x10 button adds more samples to that view of the graph.
 
@@ -86,7 +86,7 @@ degrees; along the y-axis, the difference angle is varied from 0 to 90 degrees.
 BRDF FILES
 ------------------------------------
 .brdf files consist of a set of parameters and a BRDF function written in GLSL.
-At runtime, the viewer creates UI elements for each parameter, and creates
+At runtime, the application creates UI elements for each parameter, and creates
 shaders for different views that incorporate the GLSL function.
 
 The BRDF function looks like this (this example is for a lambertian BRDF):
@@ -101,7 +101,7 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
 Anything valid in GLSL can go between "::begin shader" and "::end shader" as
 long as it's valid GLSL.
 
-The viewer allows float, color, and boolean parameters. The float parameters
+The application allows float, color, and boolean parameters. The float parameters
 have the form
 float [name] [min val] [max val] [default val]
 for example:
@@ -119,9 +119,9 @@ for example:
 color diffuseColor 0.5 0.1 1.0
 
 Parameters are passed into the resulting GLSL shaders as uniforms of the same
- name (so parameter names must be valid GLSL variable names, although the
-viewer doesn't enforce this). Float parameters come in as uniform floats, 
-color parameters as vec3s, and boolean parameters as bools. The viewer
+name (so parameter names must be valid GLSL variable names, although the
+application doesn't enforce this). Float parameters come in as uniform floats,
+color parameters as vec3s, and boolean parameters as bools. The application
 declares them when constructing shaders, so your GLSL BRDF functions can 
 refer to them knowing that they'll exist and have the proper values at runtime.
 
