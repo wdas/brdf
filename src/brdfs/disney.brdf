@@ -63,14 +63,14 @@ float GTR2(float NdotH, float a)
 
 float GTR2_aniso(float NdotH, float HdotX, float HdotY, float ax, float ay)
 {
-    return 1 / ( PI * ax*ay * sqr( sqr(HdotX/ax) + sqr(HdotY/ay) + NdotH*NdotH ));
+    return 1 / (PI * ax*ay * sqr( sqr(HdotX/ax) + sqr(HdotY/ay) + NdotH*NdotH ));
 }
 
-float smithG_GGX(float Ndotv, float alphaG)
+float smithG_GGX(float NdotV, float alphaG)
 {
     float a = alphaG*alphaG;
-    float b = Ndotv*Ndotv;
-    return 1/(Ndotv + sqrt(a + b - a*b));
+    float b = NdotV*NdotV;
+    return 1 / (NdotV + sqrt(a + b - a*b));
 }
 
 float smithG_GGX_aniso(float NdotV, float VdotX, float VdotY, float ax, float ay)
