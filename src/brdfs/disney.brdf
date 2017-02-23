@@ -63,14 +63,19 @@ float GTR2(float NdotH, float a)
 
 float GTR2_aniso(float NdotH, float HdotX, float HdotY, float ax, float ay)
 {
-    return 1 / ( PI * ax*ay * sqr( sqr(HdotX/ax) + sqr(HdotY/ay) + NdotH*NdotH ));
+    return 1 / (PI * ax*ay * sqr( sqr(HdotX/ax) + sqr(HdotY/ay) + NdotH*NdotH ));
 }
 
-float smithG_GGX(float Ndotv, float alphaG)
+float smithG_GGX(float NdotV, float alphaG)
 {
     float a = alphaG*alphaG;
-    float b = Ndotv*Ndotv;
-    return 1/(Ndotv + sqrt(a + b - a*b));
+    float b = NdotV*NdotV;
+    return 1 / (NdotV + sqrt(a + b - a*b));
+}
+
+float smithG_GGX_aniso(float NdotV, float VdotX, float VdotY, float ax, float ay)
+{
+    return 1 / (NdotV + sqrt( sqr(VdotX*ax) + sqr(VdotY*ay) + sqr(NdotV) ));
 }
 
 vec3 mon2lin(vec3 x)
@@ -116,8 +121,9 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
     float Ds = GTR2_aniso(NdotH, dot(H, X), dot(H, Y), ax, ay);
     float FH = SchlickFresnel(LdotH);
     vec3 Fs = mix(Cspec0, vec3(1), FH);
-    float roughg = sqr(roughness*.5+.5);
-    float Gs = smithG_GGX(NdotL, roughg) * smithG_GGX(NdotV, roughg);
+    float Gs;
+    Gs  = smithG_GGX_aniso(NdotL, dot(L, X), dot(L, Y), ax, ay);
+    Gs *= smithG_GGX_aniso(NdotV, dot(V, X), dot(V, Y), ax, ay);
 
     // sheen
     vec3 Fsheen = FH * sheen * Csheen;
