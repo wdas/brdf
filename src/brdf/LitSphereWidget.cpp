@@ -43,7 +43,7 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <GL/glew.h>
+
 #include <QtGui>
 #include <QString>
 #include <math.h>
@@ -61,8 +61,8 @@ void normalize( float* q )
 	q[2] /= l;
 }
 
-LitSphereWidget::LitSphereWidget(QWidget *parent, std::vector<brdfPackage> brdfList )
-    : SharedContextGLWidget(parent)
+LitSphereWidget::LitSphereWidget(QWindow *parent, std::vector<brdfPackage> brdfList )
+    : GLWindow(parent)
 {
     brdfs = brdfList;
     
@@ -81,11 +81,13 @@ LitSphereWidget::LitSphereWidget(QWidget *parent, std::vector<brdfPackage> brdfL
 
     doubleTheta = true;
     useNDotL = true;
+
+    initializeGL();
 }
 
 LitSphereWidget::~LitSphereWidget()
 {
-    makeCurrent();
+    glcontext->makeCurrent(this);
 }
 
 QSize LitSphereWidget::minimumSizeHint() const
@@ -100,57 +102,40 @@ QSize LitSphereWidget::sizeHint() const
 
 void LitSphereWidget::initializeGL()
 {
-	glewInit();
+    glcontext->makeCurrent(this);
 
-    glClearColor( 0.25, 0.25, 0.25, 1 );	
+    sphere = new Sphere();
 }
 
 
-void LitSphereWidget::drawSphere( double, int lats, int longs )
+void LitSphereWidget::drawSphere( double r, int lats, int longs )
 {
-	DGLShader* shader = NULL;
+    DGLShader* shader = NULL;
 
-	// if there's a BRDF, the BRDF pbject sets up and enables the shader
-	if( brdfs.size() )
-	{
-		shader = brdfs[0].brdf->getUpdatedShader( SHADER_LITSPHERE, &brdfs[0] );
-		shader->setUniformFloat( "incidentVector", incidentVector[0], incidentVector[1], incidentVector[2] );
-		shader->setUniformFloat( "incidentTheta", inTheta );
-		shader->setUniformFloat( "incidentPhi", inPhi );
+    // if there's a BRDF, the BRDF pbject sets up and enables the shader
+    if( brdfs.size() )
+    {
+        shader = brdfs[0].brdf->getUpdatedShader( SHADER_LITSPHERE, &brdfs[0] );
+        shader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+        shader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(modelViewMatrix));
+        shader->setUniformFloat( "incidentVector", incidentVector[0], incidentVector[1], incidentVector[2] );
+        shader->setUniformFloat( "incidentTheta", inTheta );
+        shader->setUniformFloat( "incidentPhi", inPhi );
 
-		shader->setUniformFloat( "brightness", brightness );
-		shader->setUniformFloat( "gamma", gamma );
-		shader->setUniformFloat( "exposure", exposure );
+        shader->setUniformFloat( "brightness", brightness );
+        shader->setUniformFloat( "gamma", gamma );
+        shader->setUniformFloat( "exposure", exposure );
         shader->setUniformFloat( "useNDotL", useNDotL ? 1.0 : 0.0 );
-	}
+    }
 
-	
-	int i, j;
-	for(i = 0; i <= lats; i++)
-	{
-		double lat0 = M_PI * (-0.5 + (double) (i - 1) / lats);
-		double z0  = sin(lat0);
-		double zr0 =  cos(lat0);
-		
-		double lat1 = M_PI * (-0.5 + (double) i / lats);
-		double z1 = sin(lat1);
-		double zr1 = cos(lat1);
-		
-		glBegin(GL_QUAD_STRIP);
-		for(j = 0; j <= longs; j++)
-		{
-			double lng = 2 * M_PI * (double) (j - 1) / longs;
-			double x = cos(lng);
-			double y = sin(lng);
-			
-			glNormal3f(x * zr0, y * zr0, z0);
-			glVertex3f(x * zr0, y * zr0, z0);
-			glNormal3f(x * zr1, y * zr1, z1);
-			glVertex3f(x * zr1, y * zr1, z1);
-		}
-		glEnd();
-	}
-  
+    if(r!=sphere->radius() || sphere->lats()!=lats || sphere->longs()!=longs)
+    {
+        delete sphere;
+        sphere = new Sphere(r,lats,longs);
+    }
+
+    sphere->draw(shader);
+
     // if there was a shader, now we have to disable it
     if( brdfs[0].brdf )
         brdfs[0].brdf->disableShader( SHADER_LITSPHERE );
@@ -158,55 +143,45 @@ void LitSphereWidget::drawSphere( double, int lats, int longs )
 
 void LitSphereWidget::paintGL()
 {
-    if( !isShowing() )
+    if( !isShowing() || !isExposed())
         return;
-    
-    glLineWidth( 1.5 );
-    
-    
+
+    glcontext->makeCurrent(this);
+
     float useTheta = inTheta;
     if( doubleTheta )
         useTheta *= 2.0;
+
     incidentVector[0] = sin(useTheta) * cos(inPhi);
     incidentVector[1] = sin(useTheta) * sin(inPhi);
     incidentVector[2] = cos(useTheta);
-    
-    
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glViewport(0, 0, width(), height());
-    
-    
-    float fWidth = float(width());
-    float fHeight = float(height());
+
+    glf->glClearColor( 0.25, 0.25, 0.25, 1 );
+    glf->glEnable(GL_DEPTH_TEST);
+    glf->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    float fWidth = float(width()*devicePixelRatio());
+    float fHeight = float(height()*devicePixelRatio());
+
+    glf->glViewport(0, 0, fWidth, fHeight);
+
     if( width() > height() )
     {
         float aspect = fWidth / fHeight;
-        glOrtho( -aspect * sphereMargin, aspect * sphereMargin, -sphereMargin, sphereMargin, NEAR_PLANE, FAR_PLANE );
+        projectionMatrix = glm::ortho( -aspect * sphereMargin, aspect * sphereMargin, -sphereMargin, sphereMargin, NEAR_PLANE, FAR_PLANE );
     }
     else
     {
         float invAspect = fHeight / fWidth;
-        glOrtho( -sphereMargin, sphereMargin, -invAspect * sphereMargin, invAspect * sphereMargin, NEAR_PLANE, FAR_PLANE );
+        projectionMatrix = glm::ortho( -sphereMargin, sphereMargin, -invAspect * sphereMargin, invAspect * sphereMargin, NEAR_PLANE, FAR_PLANE );
     }
-    
-    
-    
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
 
-    gluLookAt( 0, 0, 2.75,
-               0, 0, 0,
-               0, 1, 0 );
+    modelViewMatrix = glm::lookAt( glm::vec3(0, 0, 2.75), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
     if( brdfs.size() )
         drawSphere( 1.0, 100, 100 );
-    
-    
-    glPopAttrib();
+
+    glcontext->swapBuffers(this);
 }
 
 

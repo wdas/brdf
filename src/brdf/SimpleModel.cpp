@@ -43,7 +43,9 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <GL/glew.h>
+#include <QElapsedTimer>
+
+#include <iostream>
 #include <string.h>
 #include <float.h>
 #include <algorithm>
@@ -79,9 +81,9 @@ void SimpleModel::clear()
     if( madeVBO )
     {
         if( normalBuffer )
-            glDeleteBuffers( 1, &normalBuffer );
+            glf->glDeleteBuffers( 1, &normalBuffer );
         if( vertexBuffer )
-            glDeleteBuffers( 1, &vertexBuffer );
+            glf->glDeleteBuffers( 1, &vertexBuffer );
     }
 
     vertexBuffer = normalBuffer = 0;
@@ -92,6 +94,9 @@ void SimpleModel::clear()
 bool SimpleModel::loadOBJ( const char* filename, bool unitize )
 {
     clear();
+
+    QElapsedTimer timer;
+    timer.start();
 
     FILE* file = fopen( filename, "r" );
     if( !file )
@@ -117,7 +122,8 @@ bool SimpleModel::loadOBJ( const char* filename, bool unitize )
     fclose(file);
     loaded = true;
 
-    createVBO();
+    qint64 loading_time = timer.elapsed();
+    std::cout << " Time to load OBJ: " << loading_time << " ms" << std::endl;
 
     return true;
 }
@@ -275,63 +281,51 @@ void SimpleModel::unitizeVertices( std::vector<float3>& vertices )
     }
 }
 
-
-
-void SimpleModel::drawImmediate()
-{
-    if( !loaded )
-        return;
-
-    glBegin( GL_TRIANGLES );
-    for( int i = 0; i < (int)numTriangles * 3; i++ )
-    {
-        glNormal3fv( (float*)&(normalData[i]) );
-        glVertex3fv( (float*)&(vertexData[i]) );        
-    }    
-    glEnd();
-}
-
-
 void SimpleModel::createVBO()
 {
-    if( !loaded )
-        return;
-    
-    // create the VBO if we haven't already
-    if( !madeVBO )
-    {
-        glGenBuffers( 1, &normalBuffer );
-        glBindBuffer( GL_ARRAY_BUFFER, normalBuffer );
-        glBufferData( GL_ARRAY_BUFFER, sizeof(float3) * 3 * numTriangles, (void*)&normalData[0], GL_STATIC_DRAW );
-        
-        glGenBuffers( 1, &vertexBuffer );
-        glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
-        glBufferData( GL_ARRAY_BUFFER, sizeof(float3) * 3 * numTriangles, (void*)&vertexData[0], GL_STATIC_DRAW );
-     
-        madeVBO = true;
-    }
+    glf->glGenVertexArrays(1, &vao);
+    glf->glBindVertexArray(vao);
+
+    glf->glGenBuffers( 1, &normalBuffer );
+    glf->glBindBuffer( GL_ARRAY_BUFFER, normalBuffer );
+    glf->glBufferData( GL_ARRAY_BUFFER, sizeof(float3) * 3 * numTriangles, (void*)&normalData[0], GL_STATIC_DRAW );
+
+    glf->glGenBuffers( 1, &vertexBuffer );
+    glf->glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+    glf->glBufferData( GL_ARRAY_BUFFER, sizeof(float3) * 3 * numTriangles, (void*)&vertexData[0], GL_STATIC_DRAW );\
+
+    glf->glBindVertexArray(0);
+
+    madeVBO = true;
 }
 
 
-void SimpleModel::drawVBO()
+void SimpleModel::drawVBO(DGLShader* shader)
 {
     if( !loaded )
         return;
 
-    createVBO();
-    
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
+    if( !madeVBO )
+        createVBO();
 
     // draw!
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glVertexPointer(3, GL_FLOAT, 0, 0);
-    glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
-    glNormalPointer (GL_FLOAT, 0, 0);
-    glDrawArrays(GL_TRIANGLES, 0, numTriangles * 3);
+    glf->glBindVertexArray(vao);
 
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
+    int vert_loc = shader->getAttribLocation("vtx_position");
+    if(vert_loc >= 0) {
+        glf->glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+        glf->glVertexAttribPointer(vert_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glf->glEnableVertexAttribArray(vert_loc);
+    }
+
+    int normal_loc = shader->getAttribLocation("vtx_normal");
+    if(normal_loc >= 0){
+        glf->glBindBuffer( GL_ARRAY_BUFFER, normalBuffer );
+        glf->glVertexAttribPointer(normal_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glf->glEnableVertexAttribArray(normal_loc);
+    }
+
+    glf->glDrawArrays(GL_TRIANGLES, 0, numTriangles * 3);
+
+    glf->glBindVertexArray(0);
 }
-
-

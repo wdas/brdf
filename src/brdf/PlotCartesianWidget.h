@@ -46,7 +46,6 @@ infringement.
 #ifndef VIEWERANGLEPLOT_H
 #define VIEWERANGLEPLOT_H
 
-#include <QGLWidget>
 #include "BRDFBase.h"
 #include "SharedContextGLWidget.h"
 
@@ -57,12 +56,12 @@ infringement.
 #define ALBEDO_PLOT 3
 
 
-class PlotCartesianWidget : public SharedContextGLWidget
+class PlotCartesianWidget : public GLWindow
 {
         Q_OBJECT
 
 public:
-    PlotCartesianWidget( QWidget *parent, std::vector<brdfPackage>, int type );
+    PlotCartesianWidget( QWindow *parent, std::vector<brdfPackage>, int type );
     ~PlotCartesianWidget();
     
     QSize minimumSizeHint() const;
@@ -88,6 +87,16 @@ protected:
 
 private:
     void resetViewingParams();
+    void initializeText();
+    void updateAxisVAO();
+    void updateInputDataLineVAO();
+    void updateProjectionMatrix();
+    void updateViewMatrix();
+
+    void drawAxis();
+    void drawLabels();
+    void renderText(float pos_x, float pos_y, const QString& text, const glm::vec3 &color);
+    DGLShader* updateShader(brdfPackage base);
 
     void drawThetaHSlice( DGLShader* shader );
     void drawThetaLSlice( DGLShader* shader );
@@ -95,11 +104,17 @@ private:
         
     void drawAnglePlot( brdfPackage base );
     
+    float zoomLevel[3];
     float lookZoom;
     float centerX;
     float centerY;
     float scaleX;
     float scaleY;
+    float fWidth;
+    float fHeight;
+    float mAspect;
+    glm::mat4 projectionMatrix;
+    glm::mat4 modelViewMatrix;
     
     float inTheta;
     float inPhi;
@@ -122,6 +137,15 @@ private:
     int samplingMode;
 
     int sliceType;
+
+    ///OpenGL resource
+    GLuint axisVAO, axisVBO[2];
+    int axisNIndices;
+    DGLShader* plotShader;
+    GLuint textVAO, textVBO, textTexureID;
+    DGLShader* textShader;
+    GLuint dataLineVAO, dataLineVBO;
+    int dataLineNPoints;
 };
 
 #endif

@@ -43,13 +43,14 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 120
-#extension EXT_gpu_shader4 : enable
+#version 410
 
 uniform vec3 drawColor;
 
+out vec4 fragColor;
+
 void main(void)
 {
-	gl_FragColor = vec4(drawColor,1);
+    fragColor = vec4(drawColor,1);
 }
 

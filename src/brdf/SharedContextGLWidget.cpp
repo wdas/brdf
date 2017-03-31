@@ -43,33 +43,89 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <stdio.h>
-#include <GL/glew.h>
+#include <QDebug>
+#include <QOpenGLContext>
+
 #include "SharedContextGLWidget.h"
 
-SharedContextGLWidget * SharedContextGLWidget::sharedWidget = 0;
+QOpenGLContext* GLContext::glcontext = NULL;
+GLWindow::GlFuncs *GLContext::glf = NULL;
 
-int SharedContextGLWidget::shareCount = 0;
+int GLContext::shareCount = 0;
 
-SharedContextGLWidget::SharedContextGLWidget(QWidget * parent)
-					 : QGLWidget(parent, sharedWidget)
-{
-	if( !sharedWidget )
-		sharedWidget = this;
+QSurfaceFormat GLContext::surfaceFormat() {
+    QSurfaceFormat format;
+    format.setRenderableType(QSurfaceFormat::OpenGL);
+    format.setMajorVersion(OPENGL_MAJOR_VERSION);
+    format.setMinorVersion(OPENGL_MINOR_VERSION);
+    format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setDepthBufferSize(24);
+    format.setSamples(8);
+    return format;
+}
 
-	++shareCount;
+void GLContext::initOpenGLContext(QWindow *window)
+{   
+    if( !glcontext ){
+        glcontext = new QOpenGLContext();
 
-	glewInit();
+        if(!glcontext) {
+            qCritical() << "Error: OpenGL context initialization failed! -- exiting...";
+            exit(1);
+        }
+
+        glcontext->setFormat(surfaceFormat());
+
+        if(!glcontext->create()) {
+            qCritical() << "Error: OpenGL context initialization failed! -- exiting...";
+            exit(1);
+        }
+
+        glcontext->makeCurrent(window);
+
+        glf = glcontext->versionFunctions<GlFuncs>();
+
+        if(!glf) {
+          qCritical() << "Error: OpenGL " << OPENGL_MAJOR_VERSION << "." << OPENGL_MINOR_VERSION << " functions initialization failed! -- exiting...";
+          exit(1);
+        } else {
+          qDebug() << "OpenGL " << OPENGL_MAJOR_VERSION << "." << OPENGL_MINOR_VERSION << " context successfully created";
+        }
+
+        glf->initializeOpenGLFunctions();
+    }
+    ++shareCount;
 
 	// at this point, we should be sharing contexts
 	//printf( "sharing? %d\n", context()->isSharing() );
 }
 
-SharedContextGLWidget::~SharedContextGLWidget()
+void GLContext::cleanOpenGLContext()
 {
 	--shareCount;
 
-	if( shareCount == 0 )
-		sharedWidget = NULL;
+    if( shareCount == 0 ){
+        delete glcontext;
+        glcontext = NULL;
+    }
 }
 
+GLWindow::GLWindow(QWindow *parent)
+ : QWindow(parent)
+{
+    setSurfaceType(QSurface::OpenGLSurface);
+    setFormat(surfaceFormat());
+    create();
+
+    initOpenGLContext(this);
+}
+
+void GLWindow::updateGL() {
+    paintGL();
+}
+
+void GLWindow::exposeEvent(QExposeEvent *ev) {
+  QWindow::exposeEvent(ev);
+  updateGL();
+}

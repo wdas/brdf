@@ -43,9 +43,19 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 120
-#extension EXT_gpu_shader4 : enable
+#version 410
 
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+uniform mat3 normalMatrix;
+
+in vec3 vtx_position;
+in vec3 vtx_normal;
+
+out vec3 eyeSpaceNormal;
+out vec3 eyeSpaceTangent;
+out vec3 eyeSpaceBitangent;
+out vec4 eyeSpaceVert;
 
 void computeTangentVectors( vec3 inVec, out vec3 uVec, out vec3 vVec )
 {
@@ -58,19 +68,11 @@ void computeTangentVectors( vec3 inVec, out vec3 uVec, out vec3 vVec )
 // nothing to see here
 void main(void)
 {
-    vec4 eyeSpaceVert;
-    vec3 eyeSpaceNormal, eyeSpaceTangent, eyeSpaceBitangent;
-
     // do the necessary transformations
-    eyeSpaceVert = gl_ModelViewMatrix * gl_Vertex;
-    eyeSpaceNormal = gl_NormalMatrix * gl_Normal;
+    eyeSpaceVert = modelViewMatrix * vec4(vtx_position,1);
+    eyeSpaceNormal = normalMatrix * vtx_normal;
 
     computeTangentVectors( eyeSpaceNormal, eyeSpaceTangent, eyeSpaceBitangent );
 
-    gl_Position = gl_ProjectionMatrix * eyeSpaceVert;
-
-    gl_TexCoord[0] = vec4( eyeSpaceNormal, 0 );
-    gl_TexCoord[1] = vec4( eyeSpaceTangent, 0 );
-    gl_TexCoord[2] = vec4( eyeSpaceBitangent, 0 );
-    gl_TexCoord[3] = eyeSpaceVert;  
+    gl_Position = projectionMatrix * eyeSpaceVert;
 }

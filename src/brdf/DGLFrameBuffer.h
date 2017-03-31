@@ -46,11 +46,12 @@ infringement.
 #ifndef _DGL_FRAME_BUFFER_H_
 #define _DGL_FRAME_BUFFER_H_
 
-#include <GL/gl.h>
+#include "SharedContextGLWidget.h"
+
 #include <vector>
 #include <string>
 
-class DGLFrameBuffer
+class DGLFrameBuffer : public GLContext
 {
 private:
 
@@ -107,7 +108,7 @@ private:
     GLuint _fboID;
     
     // the last bound FBO (so we can reattach it after unbinding)
-    GLuint _lastBoundBuffer;
+    GLint  _lastBoundBuffer;
 
     // IDs of the different textures/buffers attached to this FBO
     std::vector<BufferAttachment> _colorAttachments;
@@ -115,6 +116,8 @@ private:
 
     // dimensions of the attached textures/buffers
     int _width, _height;
+    // dimensions of the current viewport
+    int _viewport[4];
 
     // (optional) name of the FBO
     std::string _name;

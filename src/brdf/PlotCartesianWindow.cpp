@@ -43,7 +43,7 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <QtGui>
+#include <QVBoxLayout>
 #include <QCheckBox>
 #include <QPushButton>
 #include <QComboBox>
@@ -52,7 +52,6 @@ infringement.
 #include "PlotCartesianWidget.h"
 #include "ParameterWindow.h"
 #include "FloatVarWidget.h"
-#include "angleConvert.h"
 
 PlotCartesianWindow::PlotCartesianWindow( ParameterWindow* pWindow, int type ) : lockCheckBox(NULL)
 {
@@ -60,13 +59,13 @@ PlotCartesianWindow::PlotCartesianWindow( ParameterWindow* pWindow, int type ) :
     sliceType = type;
     resampleButton = NULL;
 
-    glWidget = new PlotCartesianWidget( this, pWindow->getBRDFList(), sliceType );
+    glWidget = new PlotCartesianWidget( this->windowHandle(), pWindow->getBRDFList(), sliceType );
     connect( pWindow, SIGNAL(incidentDirectionChanged(float,float)), this, SLOT(incidentDirectionChanged(float,float)) );
     connect( pWindow, SIGNAL(graphParametersChanged(bool,bool)), glWidget, SLOT(graphParametersChanged(bool,bool)) );
     connect( pWindow, SIGNAL(brdfListChanged(std::vector<brdfPackage>)), glWidget, SLOT(brdfListChanged(std::vector<brdfPackage>)) );
 
     QVBoxLayout *mainLayout = new QVBoxLayout;
-    mainLayout->addWidget(glWidget);
+    mainLayout->addWidget(QWidget::createWindowContainer(glWidget));
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     mainLayout->addLayout(buttonLayout);
@@ -125,7 +124,7 @@ void PlotCartesianWindow::angleParamChanged()
 {
     if( glWidget && sliceParamWidget) {
       glWidget->setNSamples( (int)sliceParamWidget->getValue() );
-      glWidget->setAngleParam( degreesToRadians( sliceParamWidget->getValue() ) );
+      glWidget->setAngleParam( glm::radians( sliceParamWidget->getValue() ) );
       glWidget->updateGL();
     }
 }
@@ -134,7 +133,7 @@ void PlotCartesianWindow::resamplePushed()
 {
   if( glWidget && sliceParamWidget)
   {
-    glWidget->setAngleParam( sliceParamWidget->getValue() );
+    glWidget->setAngleParam( glm::radians(sliceParamWidget->getValue()) );
     glWidget->resamplePushed();
   }
 }
@@ -160,29 +159,29 @@ void PlotCartesianWindow::incidentDirectionChanged( float incidentTheta, float i
     // don't want to mess around with null pointers
     if( !glWidget)
         return;
-    
-    
-    //printf( "void PlotCartesianWindow::incidentDirectionChanged isvis=%d\n", parentWidget()->isHidden() );
 
     float angleParameter = 0.0;
 
     if( sliceParamWidget )
     {
       if( sliceType == THETA_V_PLOT )
-          angleParameter = lockCheckBox->isChecked() ? incidentPhi : degreesToRadians( sliceParamWidget->getValue() );
+          angleParameter = lockCheckBox->isChecked() ? incidentPhi : glm::radians( sliceParamWidget->getValue() );
       else
-          angleParameter = degreesToRadians( sliceParamWidget->getValue() );
+          angleParameter = glm::radians( sliceParamWidget->getValue() );
     }
-
-    //glWidget->redraw( brdfList, incidentTheta, incidentPhi, angleParameter, logPlot, nDotL );
 
     glWidget->setAngles( incidentTheta, incidentPhi, angleParameter );
 
     // update the angle parameter
     if( lockCheckBox && lockCheckBox->isChecked() && sliceType == THETA_V_PLOT )
-        sliceParamWidget->setValue( radiansToDegrees(angleParameter) );
+        sliceParamWidget->setValue( glm::degrees(angleParameter) );
 }
 
+void PlotCartesianWindow::resizeEvent(QResizeEvent * event)
+{
+    Q_UNUSED(event)
+    glWidget->updateGL();
+}
 
 void PlotCartesianWindow::setShowing( bool s )
 {

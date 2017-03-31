@@ -46,16 +46,15 @@ infringement.
 #ifndef PlotPolarWidget_H
 #define PlotPolarWidget_H
 
-#include <QGLWidget>
 #include "BRDFBase.h"
 #include "SharedContextGLWidget.h"
 
-class PlotPolarWidget : public SharedContextGLWidget
+class PlotPolarWidget : public GLWindow
 {
     Q_OBJECT
 
 public:
-    PlotPolarWidget(QWidget *parent, std::vector<brdfPackage> bList );
+    PlotPolarWidget(QWindow *parent, std::vector<brdfPackage> bList );
     ~PlotPolarWidget();
 
     QSize minimumSizeHint() const;
@@ -65,6 +64,7 @@ private slots:
     void incidentDirectionChanged( float theta, float phi );
     void graphParametersChanged( bool logPlot, bool nDotL );
     void brdfListChanged( std::vector<brdfPackage> );
+    void setShowing( bool s );
 
 protected:
     void initializeGL();
@@ -98,6 +98,9 @@ private:
 
 	bool useLogPlot;
 	bool useNDotL;
+
+    glm::mat4 projectionMatrix;
+    DGLShader* plotShader;
 };
 
 #endif

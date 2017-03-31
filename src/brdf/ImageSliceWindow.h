@@ -53,7 +53,7 @@ class QSlider;
 class QCheckBox;
 class QGLWidget;
 class ParameterWindow;
-class SharedContextGLWidget;
+class GLWindow;
 
 class ImageSliceWindow : public QWidget, public ShowingBase
 {
@@ -61,13 +61,14 @@ class ImageSliceWindow : public QWidget, public ShowingBase
 
 public:
     ImageSliceWindow( ParameterWindow* pm );
+    GLWindow* getWidget() { return glWidget; }
 
 protected:
     void setShowing( bool s );
     
 private:
 
-    SharedContextGLWidget* glWidget;
+    GLWindow* glWidget;
     QCheckBox* useThetaHSquared;
     QCheckBox* showChroma;
 };

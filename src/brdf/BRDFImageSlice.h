@@ -47,18 +47,15 @@ infringement.
 #define BRDF_IMAGE_SLICE_H
 
 #include <string>
-#include <GL/glew.h>
-#include <GL/glut.h>
+
 #include "BRDFBase.h"
 
-class BRDFImageSlice : public BRDFBase
+class BRDFImageSlice : public BRDFBase, public GLContext
 {
 public:
 
     BRDFImageSlice();
     virtual ~BRDFImageSlice();
-
-    //bool loadMERLData( const char* filename );
 
     bool loadImage( const char* filename );
 
@@ -72,8 +69,6 @@ protected:
 
 private:
     std::string brdfFunction;
-
-    void createTBO();
 
     // IDs for the texture object
     GLuint texID;

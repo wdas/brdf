@@ -43,11 +43,18 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
+
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+
+in vec2 vtx_position;
+in vec2 vtx_texCoord;
+
+out vec2 texCoord;
 
 void main()
 {
-    gl_TexCoord[0] = gl_MultiTexCoord0;
-    gl_Position = ftransform();
+    texCoord = vtx_texCoord;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(vtx_position, 0, 1);
 }

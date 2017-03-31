@@ -83,86 +83,86 @@ Index
 #include "Paths.h"
 
 BRDFMeasuredAniso::BRDFMeasuredAniso() :brdfData(NULL) {
-  std::string path = (getShaderTemplatesPath() + "measuredAniso.func");
+    std::string path = getShaderTemplatesPath() + "measuredAniso.func";
 
-  //read the shader
-  std::ifstream ifs( path.c_str() );
-  std::string temp;
-  while( getline( ifs, temp ) ) brdfFunction += temp + "\n";
+    //read the shader
+    std::ifstream ifs( path.c_str() );
+    std::string temp;
+    while( getline( ifs, temp ) ) brdfFunction += temp + "\n";
 }
 
 BRDFMeasuredAniso::~BRDFMeasuredAniso() {
-  glBindBuffer(GL_TEXTURE_BUFFER_EXT, tbo);
-  glDeleteBuffers(1, &tbo);
+    glf->glBindBuffer(GL_TEXTURE_BUFFER, tbo);
+    glf->glDeleteBuffers(1, &tbo);
 }
 
 bool BRDFMeasuredAniso::loadAnisoData(const char *filename) {
-  //BRDF name is filename
-  name = std::string(filename);
+    //BRDF name is filename
+    name = std::string(filename);
 
-  //read in Anisotropic BRDF data header
-  FILE *f = fopen(filename, "rb");
-  if (!f) return false;
+    //read in Anisotropic BRDF data header
+    FILE *f = fopen(filename, "rb");
+    if (!f) return false;
 
-  int header[16];
-  if (fread(header, sizeof(int), 16, f) != 16) {
-    fprintf(stderr, "read error\n");
+    int header[16];
+    if (fread(header, sizeof(int), 16, f) != 16) {
+        fprintf(stderr, "read error\n");
+        fclose(f);
+        return false;
+    }
+    numBRDFSamples = header[0] * header[1] * header[2] * header[3];
+    int nchannels = header[10];
+    for (int i=0; i<16; i++) printf("%d \n", header[i]);
+    fflush(stdout);
+
+    //read data
+    brdfData = (float*) malloc(sizeof(float)*3*numBRDFSamples);
+    if (fread(brdfData, sizeof(float), nchannels*numBRDFSamples, f) != (unsigned)nchannels*numBRDFSamples) {
+        fprintf(stderr, "read error\n");
+        fclose(f);
+        return false;
+    }
+
     fclose(f);
-    return false;
-  }
-  numBRDFSamples = header[0] * header[1] * header[2] * header[3];
-  int nchannels = header[10];
-  for (int i=0; i<16; i++) printf("%d \n", header[i]);
-  fflush(stdout);
-
-  //read data
-  brdfData = (float*) malloc(sizeof(float)*3*numBRDFSamples);
-  if (fread(brdfData, sizeof(float), nchannels*numBRDFSamples, f) != (unsigned)nchannels*numBRDFSamples) {
-    fprintf(stderr, "read error\n");
-    fclose(f);
-    return false;
-  }
-
-  fclose(f);
-  return true;
+    return true;
 }
 
 void BRDFMeasuredAniso::initGL() {
-  if( initializedGL ) return;
+    if( initializedGL ) return;
 
-  //create buffer object
-  glGenBuffers(1, &tbo);
-  glBindBuffer(GL_TEXTURE_BUFFER_EXT, tbo);
+    //create buffer object
+    glf->glGenBuffers(1, &tbo);
+    glf->glBindBuffer(GL_TEXTURE_BUFFER, tbo);
 
-  //initialize buffer object
-  unsigned int numBytes = numBRDFSamples*3*sizeof(float)/2;
-  glBufferData( GL_TEXTURE_BUFFER_EXT, numBytes, 0, GL_STATIC_DRAW );
+    //initialize buffer object
+    unsigned int numBytes = numBRDFSamples*3*sizeof(float)/2;
+    glf->glBufferData( GL_TEXTURE_BUFFER, numBytes, 0, GL_STATIC_DRAW );
 
-  //tex
-  glGenTextures(1, &tex);
-  glBindTexture(GL_TEXTURE_BUFFER_EXT, tex);
-  glTexBufferEXT(GL_TEXTURE_BUFFER_EXT, GL_INTENSITY32F_ARB, tbo);
-  glBindBuffer(GL_TEXTURE_BUFFER_EXT, 0);
+    //tex
+    glf->glGenTextures(1, &tex);
+    glf->glBindTexture(GL_TEXTURE_BUFFER, tex);
+    glf->glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, tbo);
+    glf->glBindBuffer(GL_TEXTURE_BUFFER, 0);
 
-  glBindBuffer(GL_TEXTURE_BUFFER_EXT, tbo);
-  float* p = (float*)glMapBuffer( GL_TEXTURE_BUFFER_EXT, GL_WRITE_ONLY );
+    glf->glBindBuffer(GL_TEXTURE_BUFFER, tbo);
+    float* p = (float*)glf->glMapBuffer( GL_TEXTURE_BUFFER, GL_WRITE_ONLY );
 
-  float *halfdata = new float[numBytes];
-  for (int i=0; i<numBRDFSamples*3; i++)
-    if(i % 2 == 0) halfdata[i/2]= (brdfData[i] + brdfData[i+1])/2.0;
+    float *halfdata = new float[numBytes];
+    for (int i=0; i<numBRDFSamples*3; i++)
+        if(i % 2 == 0) halfdata[i/2]= (brdfData[i] + brdfData[i+1])/2.0;
 
-  memcpy( p, halfdata, numBytes );
-  glUnmapBuffer(GL_TEXTURE_BUFFER_EXT);
-  glBindBuffer(GL_TEXTURE_BUFFER_EXT, 0);
+    memcpy( p, halfdata, numBytes );
+    glf->glUnmapBuffer(GL_TEXTURE_BUFFER);
+    glf->glBindBuffer(GL_TEXTURE_BUFFER, 0);
 
 
-  delete[] halfdata;
-  delete[] brdfData;
-  brdfData = NULL;
-  initializedGL = true;
+    delete[] halfdata;
+    delete[] brdfData;
+    brdfData = NULL;
+    initializedGL = true;
 }
 
 void BRDFMeasuredAniso::adjustShaderPreRender(DGLShader *shader) {
-  shader->setUniformTexture( "measuredDataAniso", tex, GL_TEXTURE_BUFFER_EXT );
-  BRDFBase::adjustShaderPreRender( shader );
+    shader->setUniformTexture( "measuredDataAniso", tex, GL_TEXTURE_BUFFER );
+    BRDFBase::adjustShaderPreRender( shader );
 }

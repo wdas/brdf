@@ -43,7 +43,15 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <QtGui>
+#ifdef _MSC_VER
+    #include <windows.h>
+#endif
+
+#include <QVBoxLayout>
+#include <QCheckBox>
+#include <QMenu>
+#include <QFileDialog>
+#include <QString>
 #include <stdio.h>
 #include <string.h>
 #include "ParameterGroupWidget.h"
@@ -110,7 +118,7 @@ ParameterGroupWidget::ParameterGroupWidget( ParameterWindow* pWindow, BRDFBase* 
     QHBoxLayout* cmdLayout = new QHBoxLayout;
     cmdLayout->setMargin( 0 );
     cmdLayout->setContentsMargins( 0, 0, 0, 0 );
-    cmdLayout->setSpacing( 2 );
+    cmdLayout->setSpacing( 11 );
     cmdFrame->setLayout( cmdLayout );
 
 
@@ -120,14 +128,13 @@ ParameterGroupWidget::ParameterGroupWidget( ParameterWindow* pWindow, BRDFBase* 
     connect( visibleCheckBox, SIGNAL(stateChanged(int)), this, SLOT(paramChanged()) );
 
 
-
     // add the solo button
     soloButton = new QPushButton();
     QPixmap* soloPixmap = new QPixmap((getImagesPath() + "soloSmall.png").c_str());
     soloButton->setIconSize( QSize(soloPixmap->width(), soloPixmap->height()) );
     soloButton->setIcon( QIcon(*soloPixmap) );
-    soloButton->setFixedWidth( 30 );
-    soloButton->setFixedHeight( 24 );
+    soloButton->setFixedWidth( 24 );
+    soloButton->setFixedHeight( 20 );
     soloButton->setCheckable( true );
     soloButton->setChecked( false );
     soloButton->setToolTip( "Solo this BRDF" );
@@ -140,8 +147,8 @@ ParameterGroupWidget::ParameterGroupWidget( ParameterWindow* pWindow, BRDFBase* 
     QPixmap* soloColorsPixmap = new QPixmap((getImagesPath() + "soloColorsSmall.png").c_str());
     soloColorsButton->setIconSize( QSize(soloColorsPixmap->width(), soloColorsPixmap->height()) );
     soloColorsButton->setIcon( QIcon(*soloColorsPixmap) );
-    soloColorsButton->setFixedWidth( 30 );
-    soloColorsButton->setFixedHeight( 24 );
+    soloColorsButton->setFixedWidth( 24 );
+    soloColorsButton->setFixedHeight( 20 );
     soloColorsButton->setCheckable( true );
     soloColorsButton->setChecked( false );
     soloColorsButton->setToolTip( "Solo this BRDF's color channels" );
@@ -176,7 +183,7 @@ ParameterGroupWidget::ParameterGroupWidget( ParameterWindow* pWindow, BRDFBase* 
     // add the button with the menu dropdown
     QPushButton* menuButton = new QPushButton();
     menuButton->setFixedWidth( 24 );
-    menuButton->setFixedHeight( 24 );
+    menuButton->setFixedHeight( 20 );
     menuButton->setMenu( optionsMenu );    
     cmdLayout->addWidget( menuButton );
 
@@ -466,7 +473,7 @@ void ParameterGroupWidget::saveParamsFileButtonPushed()
     
     // if we got a filename back... save it
     if( fileName.length() )
-        brdf->saveParamsFile( fileName.toAscii().constData() );
+        brdf->saveParamsFile( fileName.toLatin1().constData() );
 }
 
 

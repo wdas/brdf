@@ -49,13 +49,13 @@ infringement.
 #include <vector>
 #include <stdio.h>
 #include <math.h>
-
+#include "DGLShader.h"
 
 /*
 Very simple class for reading/displaying OBJs. Nothing fancy.
 */
 
-class SimpleModel
+class SimpleModel : GLContext
 {
 
 struct float3
@@ -91,8 +91,7 @@ public:
     bool loadOBJ( const char* filename, bool unitize = true );
     bool isLoaded() { return loaded; }
 
-    void drawImmediate();
-    void drawVBO();
+    void drawVBO(DGLShader* shader);
 
     void clear();
 
@@ -107,6 +106,7 @@ private:
     std::vector<float3> normalData;
     float minX, maxX, minY, maxY, minZ, maxZ;
     int numTriangles;
+    GLuint vao;
     GLuint vertexBuffer;
     GLuint normalBuffer;
     bool madeVBO;

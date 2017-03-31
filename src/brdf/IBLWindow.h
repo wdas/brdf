@@ -64,14 +64,14 @@ class IBLWindow : public QWidget, public ShowingBase
 
 public:
     IBLWindow( ParameterWindow* pm );
-    
-    const QGLWidget* getWidget() { return glWidget; }
-    
+
+    IBLWidget* getWidget() { return glWidget; }
+
 public slots:
     void loadIBLButtonClicked();
     void loadModelButtonClicked();
     void renderingModeReset( bool hasBRDFIS );
-    
+
 protected:
     void setShowing( bool s );
 

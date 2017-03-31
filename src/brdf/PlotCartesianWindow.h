@@ -70,6 +70,8 @@ class PlotCartesianWindow : public QWidget, public ShowingBase
 public:
     PlotCartesianWindow( ParameterWindow* pm, int type );
 
+    GLWindow* getWidget() { return glWidget; }
+
 private slots:
     void lockChanged();
     void angleParamChanged();
@@ -77,6 +79,7 @@ private slots:
     void incidentDirectionChanged( float theta, float phi );
     
 protected:
+    void resizeEvent( QResizeEvent * event );
     void setShowing( bool s );
 
 private:

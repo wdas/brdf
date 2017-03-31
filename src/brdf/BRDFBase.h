@@ -52,6 +52,14 @@ infringement.
 #include <string>
 #include <vector>
 
+#include "SharedContextGLWidget.h"
+
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+
 class DGLShader;
 class BRDFBase;
 
@@ -104,20 +112,20 @@ struct brdfPackage
         // play it safe - don't assume other code will set this correctly
         dirty = true;
     }
-    
+
     void setDrawColor( float dr, float dg, float db )
     {
         drawColor[0] = dr;
         drawColor[1] = dg;
         drawColor[2] = db;
-    };
+    }
 
     void setColorMask( float mr, float mg, float mb )
     {
         colorMask[0] = mr;
         colorMask[1] = mg;
         colorMask[2] = mb;
-    };
+    }
 
     BRDFBase* brdf;
     float drawColor[3];
@@ -135,6 +143,7 @@ struct shaderInfo
 
     std::string vertexShaderFilename;
     std::string fragmentShaderFilename;
+    std::string geometryShaderFilename;
     DGLShader* shader;
 };
 
@@ -147,12 +156,12 @@ friend BRDFBase* createBRDFFromFile( std::string filename );
 public:
     BRDFBase();
     virtual ~BRDFBase();
-    
+
     virtual std::string getName() { return name; }
     virtual void setName( std::string n ) { name = n; }
-    
+
     bool loadBRDF( const char* filename );
-    
+
     int getParameterCount() { return parameterTypes.size(); }
     int getParameterType(int i) { return parameterTypes[i]; }
 
@@ -167,12 +176,12 @@ public:
     int getColorParameterCount();
     brdfColorParam* getColorParameter( int paramIndex );
     void setColorParameterValue( int paramIndex,float r, float g, float b  );
-   
+
     DGLShader* getUpdatedShader( int shaderType, brdfPackage* = NULL );
     void disableShader( int shaderType );
-    
+
     void saveParamsFile( const char* filename );
-    
+
     virtual bool hasISFunction() { return false; }
 
     // create a new BRDF based on this one
@@ -184,16 +193,16 @@ protected:
     virtual void addBoolParameter( std::string name, bool value );
     virtual void addColorParameter( std::string name, float r, float g, float b );
 
-    virtual void initGL() { initializedGL = true; };
+    virtual void initGL() { initializedGL = true; }
 
     virtual bool canReadSectionType( std::string ) { return false; }
-    
+
     virtual bool beginFile() { return true; }
     virtual bool beginSection( std::string ) { return true; }
     virtual bool endSection( std::string ) { return true; }
     virtual bool processLineFromSection( std::string, std::string ) { return true; }
     virtual bool endFile() { return true; }
-    
+
     virtual std::string getBRDFFunction();
     virtual std::string getISFunction();
 
@@ -207,16 +216,16 @@ protected:
     std::vector<int> parameterTypes;
     std::vector<brdfFloatParam> floatParameters;
     std::vector<brdfBoolParam> boolParameters;
-	std::vector<brdfColorParam> colorParameters;
+    std::vector<brdfColorParam> colorParameters;
     std::string name;
 
 private:
 
     bool processParameterLine( std::string line );
-    
+
     std::string loadShaderFromFile( std::string, std::string = "", std::string = "" );
-    
-    bool compileShader( DGLShader*& shader, std::string vs, std::string fs );
+
+    bool compileShader(DGLShader*& shader, std::string vs, std::string fs , std::string gs);
 
     shaderInfo shaders[NUM_SHADERS];
 };

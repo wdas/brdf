@@ -47,11 +47,9 @@ infringement.
 #define BRDFMEASUREDANISO_H
 
 #include <string>
-#include <GL/glew.h>
-#include <GL/glut.h>
 #include "BRDFBase.h"
 
-class BRDFMeasuredAniso : public BRDFBase
+class BRDFMeasuredAniso : public BRDFBase, public GLContext
 {
 public:
     BRDFMeasuredAniso();

@@ -75,6 +75,7 @@ bool checkTeapot()
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    setlocale(LC_NUMERIC,"C");
 
 #ifdef WIN32
     // Make sure there is a console to get our stdout,stderr information
@@ -110,7 +111,7 @@ int main(int argc, char *argv[])
     MainWindow main;
     main.setGeometry(rect);
     main.show();
-    
+    main.refresh();
     
     
     // open all BRDFs passed in on the commandline

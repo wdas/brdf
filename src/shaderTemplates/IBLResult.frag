@@ -43,8 +43,7 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
 uniform sampler2D resultTex;
 uniform samplerCube envCube;
@@ -58,21 +57,25 @@ uniform float exposure;
 uniform float aspect;
 uniform mat4 envRotMatrix;
 
+in vec2 texCoord;
+
+out vec4 fragColor;
+
 vec3 sampleEnvMap( vec3 rsReflVector )
 {
-    return textureCubeLod( envCube, rsReflVector, 0 ).rgb;
+    return texture( envCube, rsReflVector ).rgb;
 }
 
 
 void main()
 {
-    vec4 tex = texture2D( resultTex, gl_TexCoord[0].xy );
+    vec4 tex = texture( resultTex, texCoord );
 
     if( tex.a < 0.25 )
     {
         if( renderWithIBL > 0.5 )
         {
-            vec2 texCoord = gl_TexCoord[0].xy;
+            vec2 texCoord = texCoord.xy;
             texCoord = (texCoord) * 2.0 - vec2(1.0);
             texCoord.x *= aspect;
 
@@ -91,6 +94,6 @@ void main()
     // gamma
     tex.rgb = pow( tex.rgb, vec3( 1.0 / gamma ) );
 
-    gl_FragColor = vec4( tex.rgb, 1.0 );
+    fragColor = vec4( tex.rgb, 1.0 );
 }
 

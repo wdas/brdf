@@ -67,21 +67,26 @@ BRDFBase::BRDFBase() : initializedGL(false)
 
     shaders[SHADER_POLAR].vertexShaderFilename               = templateDir + "brdftemplate2D.vert";
     shaders[SHADER_POLAR].fragmentShaderFilename             = templateDir + "brdftemplate2D.frag";
+    shaders[SHADER_POLAR].geometryShaderFilename             = templateDir + "brdftemplatePlot.geom";
 
     shaders[SHADER_LITSPHERE].vertexShaderFilename           = templateDir + "brdftemplatesphere.vert";
     shaders[SHADER_LITSPHERE].fragmentShaderFilename         = templateDir + "brdftemplatesphere.frag";
 
     shaders[SHADER_CARTESIAN].vertexShaderFilename           = templateDir + "brdftemplateAnglePlot.vert";
     shaders[SHADER_CARTESIAN].fragmentShaderFilename         = templateDir + "brdftemplateAnglePlot.frag";
+    shaders[SHADER_CARTESIAN].geometryShaderFilename         = templateDir + "brdftemplatePlot.geom";
 
     shaders[SHADER_CARTESIAN_THETA_H].vertexShaderFilename   = templateDir + "brdftemplateAnglePlotThetaH.vert";
     shaders[SHADER_CARTESIAN_THETA_H].fragmentShaderFilename = templateDir + "brdftemplateAnglePlotThetaH.frag";
+    shaders[SHADER_CARTESIAN_THETA_H].geometryShaderFilename = templateDir + "brdftemplatePlot.geom";
 
     shaders[SHADER_CARTESIAN_THETA_D].vertexShaderFilename   = templateDir + "brdftemplateAnglePlotThetaD.vert";
     shaders[SHADER_CARTESIAN_THETA_D].fragmentShaderFilename = templateDir + "brdftemplateAnglePlotThetaD.frag";
+    shaders[SHADER_CARTESIAN_THETA_D].geometryShaderFilename = templateDir + "brdftemplatePlot.geom";
 
     shaders[SHADER_CARTESIAN_ALBEDO].vertexShaderFilename    = templateDir + "brdftemplateAnglePlotAlbedo.vert";
     shaders[SHADER_CARTESIAN_ALBEDO].fragmentShaderFilename  = templateDir + "brdftemplateAnglePlotAlbedo.frag";
+    shaders[SHADER_CARTESIAN_ALBEDO].geometryShaderFilename  = templateDir + "brdftemplateAnglePlotAlbedo.geom";
 
     shaders[SHADER_IMAGE_SLICE].vertexShaderFilename         = templateDir + "brdftemplateImageSlice.vert";
     shaders[SHADER_IMAGE_SLICE].fragmentShaderFilename       = templateDir + "brdftemplateImageSlice.frag";
@@ -104,99 +109,98 @@ BRDFBase::~BRDFBase()
 
 bool BRDFBase::loadBRDF( const char* filename )
 {
-	// for now, the BRDF name is just the filename
-	name = std::string( filename );
+    // for now, the BRDF name is just the filename
+    name = std::string( filename );
 
-	std::ifstream ifs( filename );
-	std::string line, trimmedLine;
-	std::string shader;
-	std::string token;
-	std::string currentSection;
-    
-	if( !beginFile() )
-		return false;
+    std::ifstream ifs( filename );
+    std::string line, trimmedLine;
+    std::string token;
+    std::string currentSection;
 
-	// first line needs to be the BRDF type
-	if( !getline( ifs, line ) )
-		return false;
+    if( !beginFile() )
+        return false;
 
-	// make sure we know how to read this
+    // first line needs to be the BRDF type
+    if( !getline( ifs, line ) )
+        return false;
+
+    // make sure we know how to read this
     std::string type = trim(line);
-    type = type.substr( 0, type.find( ' ' ) ); 
-	if( type != "analytic" && type != "bparam" )
-		return false;
-    
+    type = type.substr( 0, type.find( ' ' ) );
+    if( type != "analytic" && type != "bparam" )
+        return false;
 
-	while( getline( ifs, line ) )
-	{
-		trimmedLine = line;
-		trim( trimmedLine );
 
-		// skip blank lines
-		if( trimmedLine.length() == 0 )
-			continue;
+    while( getline( ifs, line ) )
+    {
+        trimmedLine = line;
+        trim( trimmedLine );
 
-		// skip comments
-		if( trimmedLine[0] == '#' )
-			continue;
+        // skip blank lines
+        if( trimmedLine.length() == 0 )
+            continue;
 
-		// grab the first token from the line
-		std::stringstream os(trimmedLine);
-		os >> token;
+        // skip comments
+        if( trimmedLine[0] == '#' )
+            continue;
 
-		// beginning of a section?
-		if( token == "::begin" )
-		{
-			os >> token;
-			
-			// still in another section?
-			if( currentSection != "" )
-				return false;
-			currentSection = token;
-			beginSection( currentSection );
+        // grab the first token from the line
+        std::stringstream os(trimmedLine);
+        os >> token;
 
-			// make sure we know what this is
-			if( currentSection != "parameters" && !canReadSectionType(currentSection) )
-				printf( "Warning: Don't know what to do with %s.\n", currentSection.c_str() );
-		}
+        // beginning of a section?
+        if( token == "::begin" )
+        {
+            os >> token;
 
-		// end of a section?
-		else if( token == "::end" )
-		{
-			os >> token;
+            // still in another section?
+            if( currentSection != "" )
+                return false;
+            currentSection = token;
+            beginSection( currentSection );
 
-			// can't nest modes, so this needs to be the end of the current section
-			if( token != currentSection )
-				return false;
+            // make sure we know what this is
+            if( currentSection != "parameters" && !canReadSectionType(currentSection) )
+                printf( "Warning: Don't know what to do with %s.\n", currentSection.c_str() );
+        }
 
-			endSection( currentSection );
-			currentSection = "";
-		}
+        // end of a section?
+        else if( token == "::end" )
+        {
+            os >> token;
 
-		// just a line in a section
-		else
-		{
-			// if we're reading parameters, then... read a parameter
-			if( currentSection == "parameters" )
-			{
-				if( !processParameterLine( trimmedLine ) )
-					return false;
-			}
+            // can't nest modes, so this needs to be the end of the current section
+            if( token != currentSection )
+                return false;
 
-			// derived class can read whatever
-			else
-			{
-				if( !processLineFromSection( currentSection, line ) )
-					return false;
-			}
-		}
-	}
+            endSection( currentSection );
+            currentSection = "";
+        }
 
-	if( !endFile() )
-		return false;
+        // just a line in a section
+        else
+        {
+            // if we're reading parameters, then... read a parameter
+            if( currentSection == "parameters" )
+            {
+                if( !processParameterLine( trimmedLine ) )
+                    return false;
+            }
 
-    
-	return true;
+            // derived class can read whatever
+            else
+            {
+                if( !processLineFromSection( currentSection, line ) )
+                    return false;
+            }
+        }
+    }
+
+    if( !endFile() )
+        return false;
+
+
+    return true;
 }
 
 
@@ -273,8 +277,8 @@ bool BRDFBase::processParameterLine( std::string line )
 
         os >> name;
         os >> r;
-		os >> g;
-		os >> b;
+        os >> g;
+        os >> b;
 
         addColorParameter( name, r, g, b );
     }
@@ -288,13 +292,14 @@ bool BRDFBase::processParameterLine( std::string line )
 DGLShader* BRDFBase::getUpdatedShader( int shaderType, brdfPackage* pkg )
 {
     initGL();
-    
+
     // if there aren't any shaders, try to compile one
     if( !shaders[shaderType].shader )
         compileShader( shaders[shaderType].shader,
                        shaders[shaderType].vertexShaderFilename,
-                       shaders[shaderType].fragmentShaderFilename );
-    
+                       shaders[shaderType].fragmentShaderFilename,
+                       shaders[shaderType].geometryShaderFilename);
+
     // assuming the compilation worked...
     DGLShader* shader = shaders[shaderType].shader;
     if( shader )
@@ -302,14 +307,14 @@ DGLShader* BRDFBase::getUpdatedShader( int shaderType, brdfPackage* pkg )
         shader->enable();
 
         // let any derived classes add stuff to the shader
-        adjustShaderPreRender( shader ); 
+        adjustShaderPreRender( shader );
 
         // sets colors
-        setColorsFromPackage( shader, pkg ); 
+        setColorsFromPackage( shader, pkg );
 
         return shader;
     }
-    
+
     // if it didn't... sorry, folks, but there's no shader.
     return NULL;
 }
@@ -332,77 +337,79 @@ void BRDFBase::disableShader( int shaderType )
 
 std::string BRDFBase::loadShaderFromFile( std::string filename, std::string chunkToInsert, std::string isFuncToInsert )
 {
-	std::ifstream ifs( filename.c_str() );
-	std::string line;
-	std::string completeShader;
+    std::ifstream ifs( filename.c_str() );
+    std::string line;
+    std::string completeShader;
 
-	// read the file line by line, and optionally, replace the below token with chunkToInsert
-	while( getline( ifs, line ) )
-	{
-		// at the top of the shader we insert all the uniforms for this shader
-		if( line == "::INSERT_UNIFORMS_HERE::" )
-		{
-			for( int i = 0; i < (int)floatParameters.size(); i++ )
-				completeShader += "uniform float " + floatParameters[i].name + ";\n";
-            for( int i = 0; i < (int)boolParameters.size(); i++ )
-				completeShader += "uniform bool " + boolParameters[i].name + ";\n";
-			for( int i = 0; i < (int)colorParameters.size(); i++ )
-				completeShader += "uniform vec3 " + colorParameters[i].name + ";\n";
-		}
-		else if( chunkToInsert.length() && line == "::INSERT_BRDF_FUNCTION_HERE::" )
+    // read the file line by line, and optionally, replace the below token with chunkToInsert
+    while( getline( ifs, line ) )
+    {
+        // at the top of the shader we insert all the uniforms for this shader
+        if( line == "::INSERT_UNIFORMS_HERE::" )
         {
-			completeShader += std::string("\n") + chunkToInsert + "\n";
-        }	
+            for( int i = 0; i < (int)floatParameters.size(); i++ )
+                completeShader += "uniform float " + floatParameters[i].name + ";\n";
+            for( int i = 0; i < (int)boolParameters.size(); i++ )
+                completeShader += "uniform bool " + boolParameters[i].name + ";\n";
+            for( int i = 0; i < (int)colorParameters.size(); i++ )
+                completeShader += "uniform vec3 " + colorParameters[i].name + ";\n";
+        }
+        else if( chunkToInsert.length() && line == "::INSERT_BRDF_FUNCTION_HERE::" )
+        {
+            completeShader += std::string("\n") + chunkToInsert + "\n";
+        }
         else if( isFuncToInsert.length() && line == "::INSERT_IS_FUNCTION_HERE::" )
         {
             completeShader += std::string("\n") + isFuncToInsert + "\n";
         }
-		else
+        else
         {
-			completeShader += line + "\n";
+            completeShader += line + "\n";
         }
-	}
+    }
 
 
-	return completeShader;
+    return completeShader;
 }
 
 
 
-bool BRDFBase::compileShader( DGLShader*& shader, std::string vs, std::string fs )
+bool BRDFBase::compileShader( DGLShader*& shader, std::string vs, std::string fs, std::string gs )
 {
-	// nuke the shader if it exists
-	if( shader )
-		delete shader;
+    // nuke the shader if it exists
+    if( shader )
+        delete shader;
 
-	// here's the tricky bit: load the shader templates, sticking in the BRDF function where needed
-	std::string vertShader = loadShaderFromFile( vs, getBRDFFunction(), getISFunction() );
-	std::string fragShader = loadShaderFromFile( fs, getBRDFFunction(), getISFunction() );
+    // here's the tricky bit: load the shader templates, sticking in the BRDF function where needed
+    std::string vertShader = loadShaderFromFile( vs, getBRDFFunction(), getISFunction() );
+    std::string fragShader = loadShaderFromFile( fs, getBRDFFunction(), getISFunction() );
 
 /*
-	printf( "==========\n" );
-	printf( "%s\n", fragShader.c_str() );
-	printf( "==========\n" );
+    printf( "==========\n" );
+    printf( "%s\n", fragShader.c_str() );
+    printf( "==========\n" );
 */
 
-	// try and compile it
-	//IC: This expects file names!s
+    // try and compile it
+    //IC: This expects file names!s
 //	shader = new DGLShader( vertShader, fragShader );
-	shader = new DGLShader();
-	shader->setVertexShaderFromString(vertShader);
-	shader->setFragmentShaderFromString(fragShader);
-	shader->create();
-	return shader->ready();
+    shader = new DGLShader();
+    shader->setVertexShaderFromString(vertShader);
+    shader->setFragmentShaderFromString(fragShader);
+    if(!gs.empty())
+        shader->setGeometryShaderFromFile(gs);
+    shader->create();
+    return shader->ready();
 }
 
 
 
 std::string BRDFBase::getBRDFFunction()
 {
-	std::string func = "float BRDF( vec3 toLight, vec3 toViewer, vec3 normal, vec3 tangent, vec3 bitangent )\n";
-	func += "{ return 1.0; }\n";
-	
-	return func;
+    std::string func = "float BRDF( vec3 toLight, vec3 toViewer, vec3 normal, vec3 tangent, vec3 bitangent )\n";
+    func += "{ return 1.0; }\n";
+
+    return func;
 }
 
 
@@ -412,7 +419,7 @@ std::string BRDFBase::getISFunction()
 {
     std::string func = "vec3 sampleBRDF( float u, float v, vec3 normal, vec3 tangent, vec3 bitangent, out vec3 wi, out float pdf )\n";
     func += "{ return vec3(0.0); }\n";
-    
+
     return func;
 }
 
@@ -420,16 +427,16 @@ std::string BRDFBase::getISFunction()
 
 void BRDFBase::setFloatParameterValue( int index, float value )
 {
-	if( index >= 0 && index < (int)floatParameters.size() )
-		floatParameters[index].currentVal = value;
+    if( index >= 0 && index < (int)floatParameters.size() )
+        floatParameters[index].currentVal = value;
 }
 
 
 brdfFloatParam* BRDFBase::getFloatParameter( int index )
 {
-	if( index >= 0 && index < (int)floatParameters.size() )
-		return &floatParameters[index];
-	return NULL;
+    if( index >= 0 && index < (int)floatParameters.size() )
+        return &floatParameters[index];
+    return NULL;
 }
 
 
@@ -442,16 +449,16 @@ int BRDFBase::getFloatParameterCount()
 
 void BRDFBase::setBoolParameterValue( int index, bool value )
 {
-	if( index >= 0 && index < (int)boolParameters.size() )
-		boolParameters[index].currentVal = value;
+    if( index >= 0 && index < (int)boolParameters.size() )
+        boolParameters[index].currentVal = value;
 }
 
 
 brdfBoolParam* BRDFBase::getBoolParameter( int index )
 {
-	if( index >= 0 && index < (int)boolParameters.size() )
-		return &boolParameters[index];
-	return NULL;
+    if( index >= 0 && index < (int)boolParameters.size() )
+        return &boolParameters[index];
+    return NULL;
 }
 
 
@@ -463,20 +470,20 @@ int BRDFBase::getBoolParameterCount()
 
 void BRDFBase::setColorParameterValue( int index, float r, float g, float b )
 {
-	if( index >= 0 && index < (int)colorParameters.size() )
-	{
-		colorParameters[index].currentVal[0] = r;
-		colorParameters[index].currentVal[1] = g;
-		colorParameters[index].currentVal[2] = b;
-	}
+    if( index >= 0 && index < (int)colorParameters.size() )
+    {
+        colorParameters[index].currentVal[0] = r;
+        colorParameters[index].currentVal[1] = g;
+        colorParameters[index].currentVal[2] = b;
+    }
 }
 
 
 brdfColorParam* BRDFBase::getColorParameter( int index )
 {
-	if( index >= 0 && index < (int)colorParameters.size() )
-		return &colorParameters[index];
-	return NULL;
+    if( index >= 0 && index < (int)colorParameters.size() )
+        return &colorParameters[index];
+    return NULL;
 }
 
 
@@ -502,7 +509,7 @@ void BRDFBase::adjustShaderPreRender( DGLShader* shader )
     for( int i = 0; i < (int)colorParameters.size(); i++ )
     {
         shader->setUniformFloat( (char*)colorParameters[i].name.c_str(),  colorParameters[i].currentVal[0],
-							            colorParameters[i].currentVal[1], colorParameters[i].currentVal[2] );
+                                        colorParameters[i].currentVal[1], colorParameters[i].currentVal[2] );
     }
 }
 
@@ -562,17 +569,17 @@ void BRDFBase::syncParametersIntoBRDF( BRDFBase* newBRDF )
 
 
 void BRDFBase::saveParamsFile( const char* filename )
-{   
+{
     FILE* out = fopen( filename, "wt" );
     if( !out )
         return;
-    
+
     fprintf( out, "bparam %s\n\n", name.c_str() );
     fprintf( out, "::begin parameters\n" );
-    
+
     // write out the current values of the parameters
     for( int i = 0; i < (int)floatParameters.size(); i++ )
-        fprintf( out, "float %s %f %f %f\n", floatParameters[i].name.c_str(), 
+        fprintf( out, "float %s %f %f %f\n", floatParameters[i].name.c_str(),
                  floatParameters[i].minVal, floatParameters[i].maxVal, floatParameters[i].currentVal );
     for( int i = 0; i < (int)boolParameters.size(); i++ )
         fprintf( out, "bool %s %d\n", boolParameters[i].name.c_str(),
@@ -582,7 +589,7 @@ void BRDFBase::saveParamsFile( const char* filename )
                                              colorParameters[i].currentVal[0],
                                              colorParameters[i].currentVal[1],
                                              colorParameters[i].currentVal[2] );
-    
+
     fprintf( out, "::end parameters\n" );
     fclose( out );
 }
@@ -590,12 +597,12 @@ void BRDFBase::saveParamsFile( const char* filename )
 
 
 BRDFBase* BRDFBase::cloneBRDF(bool resetToDefaults)
-{    
+{
     BRDFBase* b = createBRDFFromFile( name );
-    
+
     if( b && resetToDefaults == false )
         syncParametersIntoBRDF( b );
-   
+
     return b;
 }
 
@@ -606,7 +613,7 @@ BRDFBase* BRDFBase::cloneBRDF(bool resetToDefaults)
 
 // this is a factory function that creates a BRDF class of a given type, based on the extension of the input file
 BRDFBase* createBRDFFromFile( std::string filename )
-{      
+{
     std::string extension = filename.substr( filename.find_last_of( '.' ) +1 );
     BRDFBase* b = NULL;
     bool success = false;
@@ -642,7 +649,7 @@ BRDFBase* createBRDFFromFile( std::string filename )
         std::string line;
         getline( ifs, line );
         line = trim(line);
-        std::string dataFile = line.substr( line.find( ' ' ) + 1 ); 
+        std::string dataFile = line.substr( line.find( ' ' ) + 1 );
 
         // try and load the bparam file as an analytic, to extract the parameters
         BRDFBase* dummy = new BRDFAnalytic;
@@ -650,20 +657,20 @@ BRDFBase* createBRDFFromFile( std::string filename )
         if( !success )
         {
             delete dummy;
-            return false;
+            return NULL;
         }
-                
+
         // create a new BRDF from the datafile name
         b = createBRDFFromFile( dataFile );
         if( !b )
-            return false;
-        
+            return NULL;
+
         // now that we've got an actual BRDF, and a fake BRDF with parameters, sync 'em
         dummy->syncParametersIntoBRDF( b );
 
         // all done with the dummy BRDF class
         delete dummy;
-        
+
         b->setName( filename );
     }
 
@@ -677,12 +684,12 @@ BRDFBase* createBRDFFromFile( std::string filename )
 
     // silently ignore everything else
     else return NULL;
-    
+
     if( !success )
     {
         delete b;
         return NULL;
     }
-    
+
     return b;
 }
