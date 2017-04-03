@@ -46,8 +46,28 @@ infringement.
 #ifndef _SHARED_CONTEXT_GL_WIDGET_H
 #define _SHARED_CONTEXT_GL_WIDGET_H
 
-#include <QGLWidget>
+#ifndef OPENGL_MAJOR_VERSION
+  #define OPENGL_MAJOR_VERSION 4
+#endif
+#ifndef OPENGL_MINOR_VERSION
+  #define OPENGL_MINOR_VERSION 1
+#endif
+
+#define OPENGL_CORE_FUNCS_HELPER2(a, b) QOpenGLFunctions_##a##_##b##_Core
+#define OPENGL_CORE_FUNCS_HELPER(a, b) OPENGL_CORE_FUNCS_HELPER2(a, b)
+#define OPENGL_CORE_FUNCS OPENGL_CORE_FUNCS_HELPER(OPENGL_MAJOR_VERSION, OPENGL_MINOR_VERSION)
+#define QUOTE(a) #a
+#define QUOTE_AND_EXPAND(a) QUOTE(a)
+#define OPENGL_CORE_FUNCS_INCLUDE QUOTE_AND_EXPAND(OPENGL_CORE_FUNCS)
+
+#include <QOpenGLContext>
+#include <QSurfaceFormat>
+#include <QWindow>
+
+#include OPENGL_CORE_FUNCS_INCLUDE
+
 #include "ShowingBase.h"
+#include "glerror.h"
 
 /*
 
@@ -57,20 +77,39 @@ between contexts; this class makes that possible without too much pain. The firs
 widget created gets saved in a static variable, and any further widgets attempt to
 establish sharing with that first widget.
 
-A bit of a hack, but it works. 
+A bit of a hack, but it works.
 
 */
 
-
-class SharedContextGLWidget : public QGLWidget, public ShowingBase
+class GLContext
 {
 public:
-    SharedContextGLWidget(QWidget* parent);
-    virtual ~SharedContextGLWidget();
+    typedef OPENGL_CORE_FUNCS GlFuncs;
 
-private:
-    static SharedContextGLWidget* sharedWidget;
+    static void initOpenGLContext(QWindow *window);
+    static void cleanOpenGLContext();
+    static GlFuncs* glFuncs() { return glf; }
+    static QSurfaceFormat surfaceFormat();
+
+protected:
     static int shareCount;
+
+    static QOpenGLContext *glcontext;
+    static GlFuncs        *glf;
+};
+
+class GLWindow : public QWindow, public ShowingBase, public GLContext
+{
+public:
+    GLWindow(QWindow *parent);
+    virtual ~GLWindow() {}
+
+    virtual void updateGL();
+    virtual void initializeGL() = 0;
+    virtual void paintGL() = 0;
+
+protected:
+    void exposeEvent(QExposeEvent *ev);
 };
 
 #endif

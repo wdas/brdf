@@ -43,13 +43,16 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
 uniform sampler2D resultTex;
 
+in vec2 texCoord;
+
+out vec4 fragColor;
+
 void main()
 {
-    gl_FragColor = texture2D( resultTex, gl_TexCoord[0].xy );
+    fragColor = texture( resultTex, texCoord );
 }
 

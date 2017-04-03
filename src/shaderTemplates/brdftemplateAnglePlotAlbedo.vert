@@ -43,9 +43,10 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
 uniform vec3 incidentVector;
 uniform float incidentTheta;
 uniform float incidentPhi;
@@ -56,10 +57,13 @@ uniform int nSamples;
 uniform float sampleMultOn;
 uniform vec3 colorMask;
 uniform int samplingMode;
-out vec4 albedoData;
 
 const float PI_ = 3.14159265358979323846264;
 const vec3 RGB2L = vec3(0.3, 0.59, 0.11);
+
+in vec3 vtx_position;
+
+out vec4 v_albedoData;
 
 ::INSERT_UNIFORMS_HERE::
 
@@ -162,7 +166,7 @@ void main(void)
 	vec3 Y = vec3(0,1,0); // bitangent
 
 	// theta is encoded in Z; x and y might get stretched
-	float yAngle = gl_Vertex.z;
+	float yAngle = vtx_position.z;
 	vec3 normalizedIncidentVector = normalize( vec3(  sin(yAngle) * cos(incidentPhi),
 														 sin(yAngle) * sin(incidentPhi),
 															cos(yAngle) ) );
@@ -244,21 +248,20 @@ void main(void)
   if (error > 0.02) alpha = 0.15;
   int degrees = int(round(180*yAngle/PI_));
   if ( degrees % 15 == 0 ) alpha = 1.0; //ensure some parts of the line are solid for contrast
-  albedoData = vec4( bRes.xyz, alpha);
+  v_albedoData = vec4( bRes.xyz, alpha);
 
 	float b = dot( bRes, colorMask );
 	float radius = useLogPlot > 0.5 ? modifyLog( b ) : b;
 	
 	// now displace the vertex by that much
-	vec4 inPos = vec4( gl_Vertex.xy, 0, 1 );
+	vec4 inPos = vec4( vtx_position.xy, 0, 1 );
 	inPos.y = radius;
 
 	
 	// do the necessary transformations
-	vec4 eyeSpaceVert = gl_ModelViewMatrix * inPos;
-	gl_Position = gl_ProjectionMatrix * eyeSpaceVert;
-	
-	// send the eye-space vert to the fragment shader, to fake some normals with
-	gl_TexCoord[1] = eyeSpaceVert;
+  // send the eye-space vert to the fragment shader, to fake some normals with
+	vec4 eyeSpaceVert = modelViewMatrix * inPos;
+	gl_Position = projectionMatrix * eyeSpaceVert;
+
 }
 

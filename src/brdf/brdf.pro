@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += qt4  #debug
+CONFIG += qt5  #debug
 
 isEmpty(prefix) {
 	prefix = $$system(pf-makevar --absolute root 2>/dev/null)
@@ -21,6 +21,8 @@ target.path = $$DEST/bin
 
 HEADERS = *.h
 SOURCES = \
+    Quad.cpp \
+    Sphere.cpp \
     BRDFAnalytic.cpp \
     BRDFBase.cpp \
     BRDFImageSlice.cpp \
@@ -36,7 +38,9 @@ SOURCES = \
     ImageSliceWindow.cpp \
     LitSphereWindow.cpp \
     main.cpp \
+    glerror.cpp \
     MainWindow.cpp \
+    ViewerWindow.cpp \
     ParameterGroupWidget.cpp \
     ParameterWindow.cpp \
     SharedContextGLWidget.cpp \
@@ -54,11 +58,11 @@ SOURCES = \
     ptex/PtexHalf.cpp
 
 
-QT   += opengl
+QT   += widgets opengl
 DEFINES += PTEX_STATIC NOMINMAX
 
 macx {
-	INCLUDEPATH += /usr/X11/include
+    CONFIG -= app_bundle
 }
 
 brdfs.path = $$DEST/share/brdf/brdfs
@@ -81,20 +85,18 @@ pkgconfig.files = brdf.pc
 
 INSTALLS = target brdfs data images probes shaderTemplates pkgconfig
 
+win32-msvc*{
+    INCLUDEPATH += ZLIB_DIR
+    DEFINES += ZLIB_WINAPI
+    LIBS += ZLIB_LIB
+}
 
-!linux-mingw32-custom{
-    LIBS += -lz -lGLEW -lGLU -lglut
+unix*{
+    LIBS += -lz
 }
 
 # Windows cross compile at disney
 linux-mingw32-custom{
-    DEFINES += GLEW_STATIC
     WINDOWS_BUILD=/jobs2/soft/users/aselle/windows-build
-    INCLUDEPATH += $$WINDOWS_BUILD/glew-1.9.0/include/
-    INCLUDEPATH += $$WINDOWS_BUILD/glut-3.7.6-bin/
-    LIBS += -L$$WINDOWS_BUILD/glut-3.7.6-bin/
-    LIBS += -L$$WINDOWS_BUILD/glew-1.9.0/lib/
     LIBS += -static-libgcc
-    LIBS += -lglew32s
-
 }

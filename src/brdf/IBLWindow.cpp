@@ -43,8 +43,11 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <QtGui>
+#include <QVBoxLayout>
+#include <QComboBox>
+#include <QPushButton>
 #include <QCheckBox>
+#include <QFileDialog>
 #include "IBLWindow.h"
 #include "IBLWidget.h"
 #include "ParameterWindow.h"
@@ -60,7 +63,7 @@ IBLWindow::IBLWindow( ParameterWindow* paramWindow )
 
     
     QVBoxLayout *mainLayout = new QVBoxLayout;
-    mainLayout->addWidget(glWidget);
+    mainLayout->addWidget(QWidget::createWindowContainer(glWidget));
 
 
     FloatVarWidget* fv;
@@ -82,6 +85,7 @@ IBLWindow::IBLWindow( ParameterWindow* paramWindow )
     
 
     QCheckBox* keepAddingSamplesCheckbox = new QCheckBox( "Keep Sampling" );
+    keepAddingSamplesCheckbox->setChecked(true);
     connect( keepAddingSamplesCheckbox, SIGNAL(stateChanged(int)), glWidget, SLOT(keepAddingSamplesChanged(int)) );
     buttonLayout->addWidget(keepAddingSamplesCheckbox);
     
@@ -123,7 +127,7 @@ IBLWindow::IBLWindow( ParameterWindow* paramWindow )
     
     setWindowTitle( "Lit Sphere" );
 
-    probeFileDialog =  new QFileDialog(this, "Open Cube Map", "", "Ptex Cube Maps (*.penv)");
+    probeFileDialog =  new QFileDialog(this, "Open Cube Map", "", "Ptex Cube Maps (*.penv *.ptex *.ptx)");
     probeFileDialog->setFileMode(QFileDialog::ExistingFile);
 
     modelFileDialog =  new QFileDialog(this, "Open Model", "", "OBJ files (*.obj)");
@@ -192,7 +196,10 @@ void IBLWindow::renderingModeReset( bool hasBRDFIS )
 
 void IBLWindow::setShowing( bool s )
 {
-    if( glWidget )
+    if( glWidget ){
         glWidget->setShowing( s );
+        if(s)
+            glWidget->updateGL();
+    }
 }
 

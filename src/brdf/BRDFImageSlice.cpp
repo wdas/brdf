@@ -57,7 +57,7 @@ infringement.
 
 
 BRDFImageSlice::BRDFImageSlice()
-               : imageSliceData(NULL), width(-1), height(-1)
+    : imageSliceData(NULL), width(-1), height(-1)
 {
     std::string path = (getShaderTemplatesPath() + "imageSlice.func");
  
@@ -73,7 +73,7 @@ BRDFImageSlice::BRDFImageSlice()
 BRDFImageSlice::~BRDFImageSlice()
 {
     printf( "glDeleteTextures( 1, &texID );\n" );
-    glDeleteTextures( 1, &texID );
+    glf->glDeleteTextures( 1, &texID );
 }
 
 
@@ -110,16 +110,16 @@ void BRDFImageSlice::initGL()
     
 
     // create the texture id
-    glGenTextures( 1, &texID );
-    glBindTexture( GL_TEXTURE_2D, texID );
+    glf->glGenTextures( 1, &texID );
+    glf->glBindTexture( GL_TEXTURE_2D, texID );
 
     // turn on linear filtering
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glf->glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glf->glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 
     // load the data
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, width, height, 0, GL_RGB, GL_FLOAT, imageSliceData );
-    glBindTexture( GL_TEXTURE_2D, 0 );
+    glf->glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGB, GL_FLOAT, imageSliceData );
+    glf->glBindTexture( GL_TEXTURE_2D, 0 );
 
     // don't need to keep it anymore
     delete[] imageSliceData;

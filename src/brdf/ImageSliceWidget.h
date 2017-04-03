@@ -46,18 +46,18 @@ infringement.
 #ifndef IMAGESLICEWIDGET_H
 #define IMAGESLICEWIDGET_H
 
-#include <QGLWidget>
 #include "BRDFBase.h"
 #include "SharedContextGLWidget.h"
+#include "Quad.h"
 
 class DGLShader;
 
-class ImageSliceWidget : public SharedContextGLWidget
+class ImageSliceWidget : public GLWindow
 {
     Q_OBJECT
 
 public:
-    ImageSliceWidget( QWidget *parent, std::vector<brdfPackage> );
+    ImageSliceWidget( QWindow *parent, std::vector<brdfPackage> );
     ~ImageSliceWidget();
     
     QSize minimumSizeHint() const;
@@ -115,6 +115,13 @@ private:
     
     bool useThetaHSquared;
     bool showChroma;
+
+    glm::mat4 projectionMatrix;
+
+    Quad* quad;
+    DGLShader* plotShader;
+    GLuint vao;
+    GLuint vbo[2];
 };
 
 #endif

@@ -112,13 +112,13 @@ disable() also disables all the bound textures unless you pass in false.
 #ifndef _DGL_SHADER_H_
 #define _DGL_SHADER_H_
 
-#include <GL/glew.h>
-#include <GL/glut.h>
 #include <string>
 #include <vector>
 
+#include "SharedContextGLWidget.h"
 
-class DGLShader
+
+class DGLShader : public GLContext
 {
 private:
 
@@ -129,32 +129,32 @@ private:
     // of which ones are actually used.
     struct BoundTexture
     {
-        BoundTexture() : target(GL_TEXTURE_2D), unit(-1), bound(false) {}        
+        BoundTexture() : target(GL_TEXTURE_2D), unit(-1), bound(false) {}
         GLenum target;
         int unit;
         bool bound;
     };
-    
+
 public:
 
     DGLShader();
     ~DGLShader();
 
     // convenience constructor, which sets up a vertex and fragment shader
-    DGLShader( std::string vertFilename, std::string fragFilename );
-    
+    DGLShader( std::string vertFilename, std::string fragFilename,  std::string geomFilename="" );
+
     // sets filenames for the different shader types. Note that this does
     // NOT create the objects - you need to call create() to do that.
     void setVertexShaderFromFile( std::string filename );
     void setGeometryShaderFromFile( std::string filename );
     void setFragmentShaderFromFile( std::string filename );
-    
+
     // set actual shader code for the different shader types. Note that this does
     // NOT create the objects - you need to call create() to do that.
     void setVertexShaderFromString( std::string );
     void setGeometryShaderFromString( std::string );
     void setFragmentShaderFromString( std::string );
-    
+
     // the function that actually compiles the shaders. Disable linkNow if you need
     // to do some further setup before linking.
     bool create( bool linkNow = true );
@@ -167,7 +167,7 @@ public:
 
     // delete all the program and shader objects
     void clear();
-    
+
     // reload everything - simply calls create(true)
     void reload();
 
@@ -176,23 +176,25 @@ public:
     void enable();
     void disable( bool disableTextureUnits = true );
 
-    // functions for setting float uniforms    
+    // functions for setting float uniforms
     void setUniformFloat( const char* uniformName, float );
     void setUniformFloat( const char* uniformName, float, float );
     void setUniformFloat( const char* uniformName, float, float, float );
     void setUniformFloat( const char* uniformName, float, float, float, float );
     void setUniformFloatArray( const char* uniformName, int elementCount, int arrayLength, float* arrayData );
-    
+
     // functions for setting int uniforms
     void setUniformInt( const char* uniformName, int);
     void setUniformInt( const char* uniformName, int, int );
     void setUniformInt( const char* uniformName, int, int, int );
     void setUniformInt( const char* uniformName, int, int, int, int );
     void setUniformIntArray( const char* uniformName, int elementCount, int arrayLength, int* arrayData );
-    
+
     // function for setting a 4x4 matrix uniform
     void setUniformMatrix4( const char* uniformName, float* matrix );
-    
+    // function for setting a 3x3 matrix uniform
+    void setUniformMatrix3( const char* uniformName, float* matrix );
+
     // function for setting a uniform texture:
     // textureName: name of the shader uniform
     // textureID: OpenGL texture ID of the texture you wish to bind
@@ -201,7 +203,7 @@ public:
     // enableTextureTarget: whether glEnable should be called on the target type
     bool setUniformTexture( const char* textureName, GLint textureID,
                             GLenum target = GL_TEXTURE_2D, int unit = -1,
-                            bool enableTextureTarget = true );
+                            bool enableTextureTarget = false );
 
     // calls glDisable on the texture unit and the texture type
     void disableTexture( GLenum target, int unit );
@@ -213,28 +215,31 @@ public:
     GLuint getFragmentShaderID()  { return _fragmentShaderID; }
     GLuint getProgramID()         { return _programID; }
 
+    // returns the index of the generic attribute name
+    int getAttribLocation(const char* name) const;
+
     // whether or not to print the error messages
     void printErrors( bool pe ) { _printErrors = pe; }
 
 private:
-    
+
     // get the contents of the supplied filename and put it in contents
     bool readFile( std::string filename, std::string& contents );
-    
+
     // do the actual work of compiling the shader and attach it to the program object
     bool compileAndAttachShader( GLuint& shaderID, GLenum shaderType, const char* shaderTypeStr,
                                  std::string filename, std::string contents );
-    
+
     // contents/filenames for the shaders
     std::string _vertexShaderFilename;
     std::string _vertexShaderString;
-    
+
     std::string _geometryShaderFilename;
     std::string _geometryShaderString;
-    
+
     std::string _fragmentShaderFilename;
     std::string _fragmentShaderString;
-    
+
     // IDs of the different objects
     GLuint _vertexShaderID;
     GLuint _geometryShaderID;
@@ -242,7 +247,7 @@ private:
     GLuint _programID;
 
     // where we keep track of the textures and where they are bound
-    int _firstAvailableTextureUnit;    
+    int _firstAvailableTextureUnit;
     std::vector<BoundTexture> _boundTextures;
 
     // whether to actually print any GLSL errors that occur

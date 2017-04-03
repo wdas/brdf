@@ -43,8 +43,7 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
 uniform float useNDotL;
 uniform float incidentPhi;
@@ -54,6 +53,10 @@ uniform float gamma;
 uniform float exposure;
 uniform float showChroma;
 uniform float useThetaHSquared;
+
+in vec2 texCoord;
+
+out vec4 fragColor;
 
 ::INSERT_UNIFORMS_HERE::
 
@@ -84,10 +87,10 @@ void main()
     // thetaH and thetaD vary from [0 - pi/2]
     const float M_PI = 3.1415926535897932384626433832795;
 
-    float thetaH = gl_TexCoord[0].r;
+    float thetaH = texCoord.r;
     if (useThetaHSquared != 0) thetaH = Sqr(thetaH) / (M_PI * 0.5);
 
-    float thetaD = gl_TexCoord[0].g;
+    float thetaD = texCoord.g;
 
     // compute H from thetaH,phiH where (phiH = incidentPhi)
     float phiH = incidentPhi;
@@ -126,5 +129,5 @@ void main()
     // gamma
     b = pow( b, vec3( 1.0 / gamma ) );
 
-    gl_FragColor = vec4( clamp( b, vec3(0.0), vec3(1.0) ), 1.0 );
+    fragColor = vec4( clamp( b, vec3(0.0), vec3(1.0) ), 1.0 );
 }

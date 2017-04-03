@@ -43,93 +43,27 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <GL/glew.h>
-#include <QtGui>
+#ifdef _MSC_VER
+    #include <windows.h>
+	#define _USE_MATH_DEFINES
+	#include <cmath> 
+#endif
+
+#include <QTimer>
+#include <QWidget>
+#include <QMouseEvent>
 #include <QString>
 #include <math.h>
 #include <stdlib.h>
-#include "./ptex/Ptexture.h"
+#include "ptex/Ptexture.h"
 #include "IBLWidget.h"
 #include "SimpleModel.h"
 #include "DGLFrameBuffer.h"
-#include "angleConvert.h"
 #include "DGLShader.h"
 #include <string>
 #include <iostream>
 #include "Paths.h"
-
-int PrintOpenGLError(const char *file, int line, const char *msg = 0)
-{
-    // Returns 1 if an OpenGL error occurred, 0 otherwise.
-    int retCode = 0;
-    GLenum glErr = glGetError();
-    while (glErr != GL_NO_ERROR)
-    {
-        const char *errDescr = (const char *)gluErrorString(glErr);
-        if (! errDescr) {
-            if (glErr == GL_INVALID_FRAMEBUFFER_OPERATION_EXT)
-                errDescr = "Invalid framebuffer operation (ext)";
-            else
-                errDescr = "(unrecognized error code)";
-        }
-
-        char output[1000];
-        sprintf(output, "OpenGL Error %s (%d) in file %s:%d%s%s%s",
-                errDescr, glErr, file, line,
-                msg ? " (" : "",
-                msg ? msg : "",
-                msg ? ")" : "");
-
-        std::cout << output << std::endl;
-
-        if (GLEW_GREMEDY_string_marker) {
-            glStringMarkerGREMEDY(0, output);
-        }
-
-        retCode = 1;
-
-        glErr = glGetError();
-    }
-    return retCode;
-}
-
-
-#define CKGL() PrintOpenGLError(__FILE__, __LINE__)
-
-
-bool invertMatrix4( const float m[16], float inverse[16] )
-{
-    float invTemp[16];
-    float determinant;
-
-    invTemp[0] =   m[5]*m[10]*m[15] - m[5]*m[11]*m[14] - m[9]*m[6]*m[15] + m[9]*m[7]*m[14] + m[13]*m[6]*m[11] - m[13]*m[7]*m[10];
-    invTemp[1]  = -m[1]*m[10]*m[15] + m[1]*m[11]*m[14] + m[9]*m[2]*m[15] - m[9]*m[3]*m[14] - m[13]*m[2]*m[11] + m[13]*m[3]*m[10];
-    invTemp[2]  =  m[1]*m[6]*m[15]  - m[1]*m[7]*m[14]  - m[5]*m[2]*m[15] + m[5]*m[3]*m[14] + m[13]*m[2]*m[7]  - m[13]*m[3]*m[6];
-    invTemp[3]  = -m[1]*m[6]*m[11]  + m[1]*m[7]*m[10]  + m[5]*m[2]*m[11] - m[5]*m[3]*m[10] - m[9]*m[2]*m[7]   + m[9]*m[3]*m[6];
-    invTemp[4] =  -m[4]*m[10]*m[15] + m[4]*m[11]*m[14] + m[8]*m[6]*m[15] - m[8]*m[7]*m[14] - m[12]*m[6]*m[11] + m[12]*m[7]*m[10];
-    invTemp[5]  =  m[0]*m[10]*m[15] - m[0]*m[11]*m[14] - m[8]*m[2]*m[15] + m[8]*m[3]*m[14] + m[12]*m[2]*m[11] - m[12]*m[3]*m[10];
-    invTemp[6]  = -m[0]*m[6]*m[15]  + m[0]*m[7]*m[14]  + m[4]*m[2]*m[15] - m[4]*m[3]*m[14] - m[12]*m[2]*m[7]  + m[12]*m[3]*m[6];
-    invTemp[7]  =  m[0]*m[6]*m[11]  - m[0]*m[7]*m[10]  - m[4]*m[2]*m[11] + m[4]*m[3]*m[10] + m[8]*m[2]*m[7]   - m[8]*m[3]*m[6];
-    invTemp[8]  =  m[4]*m[9]*m[15]  - m[4]*m[11]*m[13] - m[8]*m[5]*m[15] + m[8]*m[7]*m[13] + m[12]*m[5]*m[11] - m[12]*m[7]*m[9];
-    invTemp[9]  = -m[0]*m[9]*m[15]  + m[0]*m[11]*m[13] + m[8]*m[1]*m[15] - m[8]*m[3]*m[13] - m[12]*m[1]*m[11] + m[12]*m[3]*m[9];
-    invTemp[10] =  m[0]*m[5]*m[15]  - m[0]*m[7]*m[13]  - m[4]*m[1]*m[15] + m[4]*m[3]*m[13] + m[12]*m[1]*m[7]  - m[12]*m[3]*m[5];
-    invTemp[11] = -m[0]*m[5]*m[11]  + m[0]*m[7]*m[9]   + m[4]*m[1]*m[11] - m[4]*m[3]*m[9]  - m[8]*m[1]*m[7]   + m[8]*m[3]*m[5];
-    invTemp[12] = -m[4]*m[9]*m[14]  + m[4]*m[10]*m[13] + m[8]*m[5]*m[14] - m[8]*m[6]*m[13] - m[12]*m[5]*m[10] + m[12]*m[6]*m[9];
-    invTemp[13] =  m[0]*m[9]*m[14]  - m[0]*m[10]*m[13] - m[8]*m[1]*m[14] + m[8]*m[2]*m[13] + m[12]*m[1]*m[10] - m[12]*m[2]*m[9];
-    invTemp[14] = -m[0]*m[5]*m[14]  + m[0]*m[6]*m[13]  + m[4]*m[1]*m[14] - m[4]*m[2]*m[13] - m[12]*m[1]*m[6]  + m[12]*m[2]*m[5];
-    invTemp[15] =  m[0]*m[5]*m[10]  - m[0]*m[6]*m[9]   - m[4]*m[1]*m[10] + m[4]*m[2]*m[9]  + m[8]*m[1]*m[6]   - m[8]*m[2]*m[5];
-
-    // determinant = 0 means a singular matrix w/ no inverse
-    determinant = m[0]*invTemp[0] + m[1]*invTemp[4] + m[2]*invTemp[8] + m[3]*invTemp[12];
-    if( determinant == 0 ) return false;
-
-    // divide by determinant
-    determinant = 1.0 / determinant;
-    for( int i = 0; i < 16; i++ )
-        inverse[i] = invTemp[i] * determinant;
-
-    return true;
-}
+#include "glerror.h"
 
 
 // probability textures:
@@ -139,22 +73,22 @@ bool invertMatrix4( const float m[16], float inverse[16] )
 
 
 IBLWidget::IBLWidget(QWidget *parent, std::vector<brdfPackage> bList )
-    : SharedContextGLWidget(parent), meshDisplayListID(0), fbo(NULL),
-      numSampleGroupsRendered(0), renderWithIBL(false), keepAddingSamples(false), 
+    : GLWindow(parent->windowHandle()), meshDisplayListID(0), fbo(NULL),
+      numSampleGroupsRendered(0), renderWithIBL(false), keepAddingSamples(true),
       lastBRDFUsed(NULL), model(NULL)
 {
     connect( this, SIGNAL(resetRenderingMode(bool)), parent, SLOT(renderingModeReset(bool)) );
     comp = NULL;
     fbo = NULL;
-    
+
     brdfs = bList;
-    
-    iblRenderingMode = RENDER_NO_IBL;
-    
+
+    iblRenderingMode = RENDER_IBL_IS;
+
     NEAR_PLANE = 0.01f;
     FAR_PLANE = 50.0f;
     FOV_Y = 45.0f;
-    
+
     resetViewingParams();
 
     gamma = 2.2;
@@ -164,24 +98,31 @@ IBLWidget::IBLWidget(QWidget *parent, std::vector<brdfPackage> bList )
     inPhi = 0.785398163;
 
     stepSize = 271;
-    totalSamples = stepSize * 15;
+    totalSamples = stepSize * 15;//500
     randomizeSampleGroupOrder();
 
     updateTimer = new QTimer(this);
     connect( updateTimer, SIGNAL(timeout()), this, SLOT(updateTimerFired()) );
-    
-    
+
+
     faceWidth = 128;
     faceHeight = 128;
     numColumns = faceWidth * 6;
     numRows = faceHeight;
+
+    quad = NULL;
+
+    envTexID = 0;
+
+    initializeGL();
 }
 
 
 IBLWidget::~IBLWidget()
 {
-    makeCurrent();
+    glcontext->makeCurrent(this);
     delete model;
+    delete quad;
 }
 
 
@@ -189,10 +130,10 @@ void IBLWidget::resetViewingParams()
 {
     envPhi = 0.0;
     envTheta = 0.0;
-    
+
     lookPhi = -0.85;
     lookTheta = 1.57;
-    lookZoom = 0.75;
+    lookZoom = 1;
 }
 
 
@@ -229,42 +170,45 @@ QSize IBLWidget::sizeHint() const
 
 void IBLWidget::initializeGL()
 {
-    glewInit();
-
-    
+    glcontext->makeCurrent(this);
 
     model = new SimpleModel();
 
     loadIBL( (getProbesPath() + "beach.penv").c_str() );
-    loadModel( (getModelsPath() + "teapot.obj").c_str() );
+    loadModel( (getModelsPath() + "sphere.obj").c_str() );
 
     // load the shaders
-    resultShader = new DGLShader( "", (getShaderTemplatesPath() + "IBLResult.frag").c_str() );
-    compShader = new DGLShader( "", (getShaderTemplatesPath() + "IBLComp.frag").c_str() );
-
-    glClearColor( 0, 0, 0, 0 );	
+    resultShader = new DGLShader( (getShaderTemplatesPath() + "Quad.vert").c_str(), (getShaderTemplatesPath() + "IBLResult.frag").c_str() );
+    compShader = new DGLShader( (getShaderTemplatesPath() + "Quad.vert").c_str(), (getShaderTemplatesPath() + "IBLComp.frag").c_str() );
 }
 
 
 
 bool IBLWidget::recreateFBO()
 {
+    mSize = width() < height() ? width() : height();
+    mSize *= devicePixelRatio();
+
     // if the FBO is the right size, no need to create it
-    if( fbo && fbo->width() == width() && fbo->height() == height() )
+    if( fbo && fbo->width() == mSize && fbo->height() == mSize )
         return false;
+
+    if(quad) delete quad;
+    quad = new Quad(0.f, 0.f, mSize, mSize, 0.f, 0.f, 1.f, 1.f);
 
     if (fbo) delete fbo;
     if (comp) delete comp;
 
-    fbo = new DGLFrameBuffer( width(), height(), "FBO" );
-    fbo->addColorBuffer( 0, GL_RGBA32F_ARB );
+    fbo = new DGLFrameBuffer( mSize, mSize, "FBO" );
+    fbo->addColorBuffer( 0, GL_RGBA32F );
     fbo->addDepthBuffer();
     fbo->checkStatus();
 
-    comp = new DGLFrameBuffer( width(), height(), "Comp" );
-    comp->addColorBuffer( 0, GL_RGBA32F_ARB );
+    comp = new DGLFrameBuffer( mSize, mSize, "Comp" );
+    comp->addColorBuffer( 0, GL_RGBA32F );
     comp->checkStatus();
 
+    glf->glDisable( GL_BLEND );
     resetComps();
 
     return true;
@@ -273,17 +217,17 @@ bool IBLWidget::recreateFBO()
 
 void IBLWidget::setupProjectionMatrix()
 {
-    float fWidth = float(width());
-    float fHeight = float(height());
+    float fWidth = mSize;
+    float fHeight = mSize;
     if( width() > height() )
     {
         float aspect = fWidth / fHeight;
-        glOrtho( -aspect, aspect, -1.0, 1.0, NEAR_PLANE, FAR_PLANE );
+        projectionMatrix = glm::ortho( -aspect, aspect, -1.f, 1.f, NEAR_PLANE, FAR_PLANE );
     }
     else
     {
         float invAspect = fHeight / fWidth;
-        glOrtho( -1.0, 1.0, -invAspect, invAspect, NEAR_PLANE, FAR_PLANE );
+        projectionMatrix = glm::ortho( -1.f, 1.f, -invAspect, invAspect, NEAR_PLANE, FAR_PLANE );
     }
 }
 
@@ -294,69 +238,45 @@ void IBLWidget::renderObject()
     incidentVector[1] = sin(inTheta) * sin(inPhi);
     incidentVector[2] = cos(inTheta);
 
-
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glEnable( GL_DEPTH_TEST );
-    glLineWidth( 1.5 );
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
+    glf->glEnable( GL_DEPTH_TEST );
 
     setupProjectionMatrix();
-    
-    
-    float lookVec[3];
-    lookVec[0] = sin(lookTheta) * cos(lookPhi);
-    lookVec[2] = sin(lookTheta) * sin(lookPhi);
-    lookVec[1] = cos(lookTheta);
 
-    
-    lookVec[0] *= 25.0;
-    lookVec[1] *= 25.0;
-    lookVec[2] *= 25.0;
-    
-    
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    gluLookAt( lookVec[0], lookVec[1], lookVec[2],
-               0, 0, 0,
-               0, 1, 0 );
+    glm::vec3 lookVec;
+    lookVec[0] = sin(lookTheta) * cos(lookPhi) * 25.f;
+    lookVec[2] = sin(lookTheta) * sin(lookPhi) * 25.f;
+    lookVec[1] = cos(lookTheta) * 25.f;
 
-    float scale = 1.0 / lookZoom;
-    glScalef( scale, scale, scale );
+    modelViewMatrix = glm::lookAt(lookVec, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+    float scale = 1.f / lookZoom;
+    modelViewMatrix = glm::scale(modelViewMatrix, glm::vec3(scale, scale, scale));
+
+    normalMatrix = glm::inverseTranspose(glm::mat3(modelViewMatrix));
+
     if( brdfs.size() )
         drawObject();
-    
-    glPopAttrib();
 }
-
 
 void IBLWidget::paintGL()
 {
-    if( !isShowing() )
+    if(!isShowing())
         return;
-    
+
+    glcontext->makeCurrent(this);
+
+    glf->glClearColor( 0, 0, 0, 0 );
+    glf->glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
     recreateFBO();
 
-
-    glMatrixMode( GL_MODELVIEW );
-    glPushMatrix();
-    glLoadIdentity();
-    glRotatef( radiansToDegrees(envPhi), 0, 1, 0 );
-    glRotatef( radiansToDegrees(envTheta), 1, 0, 0 );  
-    glGetFloatv( GL_MODELVIEW_MATRIX, envRotMatrix );
-    glPopMatrix();
-    
-    
-    
-    invertMatrix4( envRotMatrix, envRotMatrixInverse );
-
+    envRotMatrix = glm::rotate(glm::mat4(1.f), envPhi, glm::vec3(0, 1, 0));
+    envRotMatrix = glm::rotate(envRotMatrix, envTheta, glm::vec3(0, 1, 0));
+    envRotMatrixInverse = glm::inverse(envRotMatrix);
 
     if( numSampleGroupsRendered < stepSize )
     {
         fbo->bind();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);           
+        glf->glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         renderObject();
         fbo->unbind();
 
@@ -379,9 +299,10 @@ void IBLWidget::paintGL()
         ///////////////////////////////////////
     }
 
-    
     // now draw the final result
     drawResult();
+
+    glcontext->swapBuffers(this);
 }
 
 
@@ -392,7 +313,7 @@ void IBLWidget::resetComps()
     if( comp )
     {
         comp->bind();
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+        glf->glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         comp->unbind();
     }
 
@@ -433,44 +354,47 @@ void IBLWidget::mouseMoveEvent( QMouseEvent* event )
             lookPhi += float(dx) * 0.02;
             lookTheta += float(-dy) * 0.03;
             if( lookTheta < 0.001 )
-            lookTheta = 0.001;
+                lookTheta = 0.001;
             if( lookTheta > (M_PI - 0.001) )
-            lookTheta = (M_PI - 0.001);
+                lookTheta = (M_PI - 0.001);
         }
+
+        // redraw
+        resetComps();
+        updateGL();
     }
 
     else if (event->buttons() & Qt::RightButton)
     {
         // use the dir with the biggest change
         int d = abs(dx) > abs(dy) ? dx : dy;
-        
+
         lookZoom -= float(d) * lookZoom * 0.05;
         lookZoom = std::max<float>( lookZoom, 0.01f );
         lookZoom = std::min<float>( lookZoom, 100.0f );
+
+        // redraw
+        resetComps();
+        updateGL();
     }
 
-   
+
     lastPos = event->pos();
-    
-    // redraw
-    resetComps();
-    updateGL();
 }
 
 
 void IBLWidget::gammaChanged( float v )
 {
     gamma = v;
-    updateGL();
+    redrawAll();
 }
 
 
 void IBLWidget::exposureChanged( float v )
 {
     exposure = v;
-    updateGL();
+    redrawAll();
 }
-
 
 void IBLWidget::drawObject()
 {
@@ -483,21 +407,26 @@ void IBLWidget::drawObject()
 
         if( shader )
         {
+            shader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+            shader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(modelViewMatrix));
+            shader->setUniformMatrix3("normalMatrix",  glm::value_ptr(normalMatrix));
+
             shader->setUniformFloat( "incidentVector", incidentVector[0], incidentVector[1], incidentVector[2] );
             shader->setUniformFloat( "gamma", gamma );
             shader->setUniformFloat( "exposure", exposure );
+
             shader->setUniformTexture( "envCube", envTexID, GL_TEXTURE_CUBE_MAP );
 
             shader->setUniformTexture( "probTex", probTexID );
-            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+            glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+            glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
             shader->setUniformTexture( "marginalProbTex", marginalProbTexID );
-            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+            glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+            glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
             shader->setUniformFloat( "texDims", float(envTex.w), float(envTex.h) );
 
-            shader->setUniformMatrix4( "envRotMatrix", envRotMatrix );
-            shader->setUniformMatrix4( "envRotMatrixInverse", envRotMatrixInverse );
+            shader->setUniformMatrix4( "envRotMatrix", glm::value_ptr(envRotMatrix) );
+            shader->setUniformMatrix4( "envRotMatrixInverse", glm::value_ptr(envRotMatrixInverse) );
 
             shader->setUniformInt( "totalSamples", totalSamples );
             shader->setUniformInt( "stepSize", stepSize );
@@ -510,7 +439,11 @@ void IBLWidget::drawObject()
         }
     }
 
-    model->drawVBO();
+    CKGL();
+
+    model->drawVBO(shader);
+
+    CKGL();
 
     // if there was a shader, now we have to disable it
     if( brdfs[0].brdf )
@@ -520,111 +453,46 @@ void IBLWidget::drawObject()
 }
 
 
-void IBLWidget::drawSphere( double, int lats, int longs )
-{
-    float radius = 2.0;
-
-    int i, j;
-    for(i = 0; i <= lats; i++)
-    {
-        double lat0 = M_PI * (-0.5 + (double) (i - 1) / lats);
-        double z0  = sin(lat0);
-        double zr0 =  cos(lat0);
-        
-        double lat1 = M_PI * (-0.5 + (double) i / lats);
-        double z1 = sin(lat1);
-        double zr1 = cos(lat1);
-        
-        glBegin(GL_QUAD_STRIP);
-        for(j = 0; j <= longs; j++)
-        {
-            double lng = 2 * M_PI * (double) (j - 1) / longs;
-            double x = cos(lng);
-            double y = sin(lng);
-            
-            glNormal3f(x * zr0, y * zr0, z0);
-            glVertex3f(radius * x * zr0, radius * y * zr0, radius * z0);
-            glNormal3f(radius * x * zr1, radius * y * zr1, radius * z1);
-            glVertex3f(radius * x * zr1, radius * y * zr1, radius * z1);
-        }
-        glEnd();
-    }
-  
-}
-
-
 void IBLWidget::drawResult()
 {
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-    
+    glf->glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glf->glClear(GL_DEPTH_BUFFER_BIT);
+    glf->glDisable(GL_DEPTH_TEST);
 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glViewport(0, 0, width(), height());
-    gluOrtho2D(0.0, (float)width(), 0.0, (float)height());
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    
-    glDisable(GL_LIGHTING);
-    glDisable(GL_TEXTURE_2D);
-
-    glColor3f(1.0, 1.0, 1.0);
-
-    int x1 = 0;
-    int y1 = 0;
-    int x2 = width();
-    int y2 = height();
+    glf->glViewport((width() * devicePixelRatio() - mSize)/2, (height() * devicePixelRatio() - mSize)/2, mSize, mSize);
+    projectionMatrix = glm::ortho(0.f, (float)mSize, 0.f, (float)mSize);
 
     resultShader->enable();
+
+    CKGL();
+
+    glm::mat4 id(1.f);
+    resultShader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+    resultShader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(id));
     resultShader->setUniformTexture( "resultTex", comp->colorBufferID() );
-    //resultShader->BindAndEnableTexture( "resultTex", fbo->GetColorTextureID(), GL_TEXTURE0 );
 
     resultShader->setUniformTexture( "envCube", envTexID, GL_TEXTURE_CUBE_MAP );
 
     resultShader->setUniformFloat( "gamma", gamma );
     resultShader->setUniformFloat( "exposure", exposure );
-    resultShader->setUniformFloat( "aspect", float(width()) / float(height()) );
+    resultShader->setUniformFloat( "aspect", float(mSize) / float(mSize) );
     resultShader->setUniformFloat( "renderWithIBL", renderWithIBL ? 1.0 : 0.0 );
-    resultShader->setUniformMatrix4( "envRotMatrix", envRotMatrix );
+    resultShader->setUniformMatrix4( "envRotMatrix", glm::value_ptr(envRotMatrix) );
 
     resultShader->setUniformTexture( "probTex", probTexID );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     resultShader->setUniformTexture( "marginalProbTex", marginalProbTexID );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 
-
-    
-
-    glBegin(GL_QUADS);
-        glTexCoord2f(0.0, 0.0);
-        glVertex2i(x1, y1);
-
-        glTexCoord2f(1.0, 0.0);
-        glVertex2i(x2, y1);
-
-        glTexCoord2f(1.0, 1.0);
-        glVertex2i(x2, y2);
-
-        glTexCoord2f(0.0, 1.0);
-        glVertex2i(x1, y2);
-    glEnd();
-
-
+    quad->draw(resultShader);
 
     resultShader->disable();
 
-    glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-    CKGL();
-
-    
+    glf->glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
-
-
 
 void IBLWidget::compResult()
 {
@@ -632,55 +500,30 @@ void IBLWidget::compResult()
 
     if( numSampleGroupsRendered )
     {
-        glEnable( GL_BLEND );
-        glBlendFunc( GL_ONE, GL_ONE );
+        glf->glEnable( GL_BLEND );
+        glf->glBlendFunc( GL_ONE, GL_ONE );
     }
     else
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+        glf->glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glViewport(0, 0, width(), height());
-    gluOrtho2D(0.0, (float)width(), 0.0, (float)height());
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    
-    glDisable(GL_LIGHTING);
-    glDisable(GL_TEXTURE_2D);
-
-    glColor3f(1.0, 1.0, 1.0);
-
-    int x1 = 0;
-    int y1 = 0;
-    int x2 = width();
-    int y2 = height();
+    projectionMatrix = glm::ortho(0.f, (float)mSize, 0.f, (float)mSize);
 
     compShader->enable();
-    compShader->setUniformTexture( "resultTex", fbo->colorBufferID() );
+
+    glm::mat4 id(1.f);
+    compShader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+    compShader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(id));
+    compShader->setUniformTexture("resultTex", fbo->colorBufferID());
     //printf( "display with numSampleGroupsRendered = %d\n", numSampleGroupsRendered );
 
-    glBegin(GL_QUADS);
-        glTexCoord2f(0.0, 0.0);
-        glVertex2i(x1, y1);
-
-        glTexCoord2f(1.0, 0.0);
-        glVertex2i(x2, y1);
-
-        glTexCoord2f(1.0, 1.0);
-        glVertex2i(x2, y2);
-
-        glTexCoord2f(0.0, 1.0);
-        glVertex2i(x1, y2);
-    glEnd();
+    quad->draw(compShader);
 
     compShader->disable();
 
-    glDisable( GL_BLEND );
+    glf->glDisable( GL_BLEND );
 
     comp->unbind();
 }
-
 
 void IBLWidget::updateTimerFired()
 {
@@ -688,65 +531,68 @@ void IBLWidget::updateTimerFired()
         updateGL();
 }
 
-
 void IBLWidget::startTimer()
 {
     if( !updateTimer->isActive() )
-        //updateTimer->start( 25 );
         updateTimer->start( 50 );
 }
-
 
 void IBLWidget::stopTimer()
 {
     updateTimer->stop();
 }
 
-
-
 void IBLWidget::keepAddingSamplesChanged(int rs)
 {
     keepAddingSamples = bool(rs);
+    if(keepAddingSamples)
+        updateGL();
 }
-
 
 void IBLWidget::createGLSamplingTextures()
 {
-    glBindTexture( GL_TEXTURE_2D, probTexID );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_INTENSITY32F_ARB, probTex.w, probTex.h, 0, GL_RED, GL_FLOAT, probTex.getPtr() );
-    glBindTexture( GL_TEXTURE_2D, 0 );
+    glf->glBindTexture( GL_TEXTURE_2D, probTexID );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+    glf->glTexImage2D( GL_TEXTURE_2D, 0, GL_RED, probTex.w, probTex.h, 0, GL_RED, GL_FLOAT, probTex.getPtr() );
+    glf->glBindTexture( GL_TEXTURE_2D, 0 );
 
-    glBindTexture( GL_TEXTURE_2D, marginalProbTexID );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_INTENSITY32F_ARB, marginalProbTex.w, marginalProbTex.h, 0, GL_RED, GL_FLOAT, marginalProbTex.getPtr() );
-    glBindTexture( GL_TEXTURE_2D, 0 );
+    glf->glBindTexture( GL_TEXTURE_2D, marginalProbTexID );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+    glf->glTexImage2D( GL_TEXTURE_2D, 0, GL_RED, marginalProbTex.w, marginalProbTex.h, 0, GL_RED, GL_FLOAT, marginalProbTex.getPtr() );
+    glf->glBindTexture( GL_TEXTURE_2D, 0 );
 }
-
 
 void IBLWidget::loadModel( const char* filename )
 {
+    printf( "opening %s... ", filename );
     if( model ) {
-        model->loadOBJ( filename );
+        if(model->loadOBJ( filename )){
+            printf( "success\n");
+            return;
+        }
     }
+    printf( "failed\n");
 }
-
 
 void IBLWidget::loadIBL( const char* filename )
 {
-    printf( "opening %s\n", filename );
+    printf( "opening %s... ", filename );
 
     // try and load it
     Ptex::String error;
     PtexTexture* tx = PtexTexture::open(filename, error);
-    if (!tx) return;
+    if (!tx) {
+        printf( "failed\n");
+        return;
+    }
 
+    CKGL();
 
     Ptex::DataType dataType = tx->dataType();
     int numChannels = tx->numChannels();
@@ -777,7 +623,7 @@ void IBLWidget::loadIBL( const char* filename )
 
         if( faceWidth != res.u() || faceHeight != res.v() )
         {
-            printf( "Error loading ptex file\n" );
+            printf( "error loading ptex file\n" );
             return;
         }
 
@@ -787,7 +633,7 @@ void IBLWidget::loadIBL( const char* filename )
         // copy the data into the envmap texture
         for( int j = 0; j < faceHeight * faceWidth; j++ )
         {
-            color3 c( faceData[j*3+0], faceData[j*3+1], faceData[j*3+2] );  
+            color3 c( faceData[j*3+0], faceData[j*3+1], faceData[j*3+2] );
             envTex.setPixel( faceWidth*face + j % faceWidth, j / faceWidth, c );
         }
 
@@ -795,22 +641,26 @@ void IBLWidget::loadIBL( const char* filename )
 
     }
     tx->release();
+    printf( "success\n");
 
     // allocate texture names (if we haven't before)
     if( envTexID == 0 ) {
-        glGenTextures( 1, &envTexID );
-        glGenTextures( 1, &probTexID );
-        glGenTextures( 1, &marginalProbTexID );
+        glf->glGenTextures( 1, &envTexID );
+        glf->glGenTextures( 1, &probTexID );
+        glf->glGenTextures( 1, &marginalProbTexID );
     }
+
+    CKGL();
 
     // now that the envmap tex is loaded, compute the sampling data
     computeEnvMapSamplingData();
     createGLSamplingTextures();
 
+    CKGL();
 
-    glGenTextures(1, &envTexID);
-    glBindTexture( GL_TEXTURE_CUBE_MAP, envTexID );
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glf->glGenTextures(1, &envTexID);
+    glf->glBindTexture( GL_TEXTURE_CUBE_MAP, envTexID );
+    glf->glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
 
     BitmapContainer<color3> flip;
@@ -825,47 +675,49 @@ void IBLWidget::loadIBL( const char* filename )
     BitmapContainer<color3> tmp;
     tmp.create(envTex.h, envTex.h);
 
+    CKGL();
 
     for (int y=0; y < tmp.h; y++)
         for (int x=0; x < tmp.w; x++)
             tmp.setPixel(x, y,flip.getPixel(x+tmp.w*0, y));
-    glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
+    glf->glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
 
 
     for (int y=0; y < tmp.h; y++)
         for (int x=0; x < tmp.w; x++)
             tmp.setPixel(x, y,flip.getPixel(x+tmp.w*1, y));
-    glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_X , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
+    glf->glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_X , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
 
     for (int y=0; y < tmp.h; y++)
         for (int x=0; x < tmp.w; x++)
             tmp.setPixel(x, y,flip.getPixel(x+tmp.w*2, y));
-    glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_Y , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
+    glf->glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_Y , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
 
     for (int y=0; y < tmp.h; y++)
         for (int x=0; x < tmp.w; x++)
             tmp.setPixel(x, y,flip.getPixel(x+tmp.w*3, y));
-    glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_Y , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
+    glf->glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_Y , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
 
     for (int y=0; y < tmp.h; y++)
         for (int x=0; x < tmp.w; x++)
             tmp.setPixel(x, y,flip.getPixel(x+tmp.w*4, y));
-    glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_Z , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
-    
+    glf->glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_Z , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
 
+
+    CKGL();
 
     for (int y=0; y < tmp.h; y++)
         for (int x=0; x < tmp.w; x++)
             tmp.setPixel(x, y,flip.getPixel(x+tmp.w*5, y));
-    glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_Z , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
+    glf->glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_Z , 0,GL_R11F_G11F_B10F, tmp.w, tmp.h, 0, GL_RGB, GL_FLOAT, tmp.getPtr() );
 
+    CKGL();
 
-    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-    glBindTexture( GL_TEXTURE_CUBE_MAP, 0 );
+    glf->glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+    glf->glBindTexture( GL_TEXTURE_CUBE_MAP, 0 );
 
     CKGL();
 }
-
 
 void IBLWidget::incidentDirectionChanged( float theta, float phi )
 {
@@ -891,7 +743,7 @@ void IBLWidget::brdfListChanged( std::vector<brdfPackage> brdfList )
         else
             emit( resetRenderingMode(false) );
     }
-    
+
     if( !brdfs.size() || (brdfs[0].dirty || brdfs[0].brdf != lastBRDFUsed) )
     {
         resetComps();
@@ -899,7 +751,6 @@ void IBLWidget::brdfListChanged( std::vector<brdfPackage> brdfList )
         lastBRDFUsed = brdfs[0].brdf;
     }
 }
-
 
 void IBLWidget::reloadAuxShaders()
 {
@@ -912,16 +763,11 @@ void IBLWidget::reloadAuxShaders()
     updateGL();
 }
 
-
-
 void IBLWidget::redrawAll()
 {
     resetComps();
     updateGL();
 }
-
-
-
 
 double IBLWidget::calculateProbs( const double* pdf, float* data, int numElements )
 {
@@ -972,8 +818,6 @@ double IBLWidget::calculateProbs( const double* pdf, float* data, int numElement
     return pdfSum;
 }
 
-
-
 void IBLWidget::computeEnvMapSamplingData()
 {
     // create the "images" to store the tex and marginal tex
@@ -1009,16 +853,14 @@ void IBLWidget::computeEnvMapSamplingData()
     calculateProbs(&marginalPdf[0], (float*)marginalProbTex.getPtr(), envTex.h );
 }
 
-
 void IBLWidget::renderingModeChanged( int newmode )
-{   
+{
     iblRenderingMode = newmode;
-    
+
     renderWithIBL = bool(iblRenderingMode > RENDER_NO_IBL);
-    
+
     resetComps();
 }
-
 
 void IBLWidget::mouseDoubleClickEvent ( QMouseEvent *  )
 {

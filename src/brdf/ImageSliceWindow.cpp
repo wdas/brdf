@@ -43,8 +43,10 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <QtGui>
+#include <QVBoxLayout>
+#include <QComboBox>
 #include <QCheckBox>
+#include <QPushButton>
 #include "ImageSliceWindow.h"
 #include "ParameterWindow.h"
 #include "FloatVarWidget.h"
@@ -52,13 +54,13 @@ infringement.
 
 ImageSliceWindow::ImageSliceWindow( ParameterWindow* paramWindow )
 {
-    glWidget = new ImageSliceWidget( this, paramWindow->getBRDFList() );
+    glWidget = new ImageSliceWidget( this->windowHandle(), paramWindow->getBRDFList() );
 
     connect( paramWindow, SIGNAL(incidentDirectionChanged(float,float)), glWidget, SLOT(incidentDirectionChanged(float,float)) );
     connect( paramWindow, SIGNAL(brdfListChanged(std::vector<brdfPackage>)), glWidget, SLOT(brdfListChanged(std::vector<brdfPackage>)) );
     
     QVBoxLayout *mainLayout = new QVBoxLayout;
-    mainLayout->addWidget(glWidget);
+    mainLayout->addWidget(QWidget::createWindowContainer(glWidget));
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     mainLayout->addLayout(buttonLayout);

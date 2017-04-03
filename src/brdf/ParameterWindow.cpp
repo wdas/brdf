@@ -44,13 +44,16 @@ infringement.
 */
 
 #include <stdio.h>
-#include <QtGui>
+#include <QGridLayout>
+#include <QComboBox>
+#include <QCheckBox>
+#include <QScrollArea>
+#include <QFileDialog>
 #include <vector>
 #include "ParameterWindow.h"
 #include "FloatVarWidget.h"
 #include "ParameterGroupWidget.h"
 #include "BRDFBase.h"
-#include "angleConvert.h"
 
 
 
@@ -110,8 +113,8 @@ void ParameterWindow::createLayout()
     mainLayout->addWidget( nDotLCheckbox, addIndex++, 0, 1, 2 );
     
     
-    incidentThetaWidget = new FloatVarWidget("Incident angle - thetaL", 0, 90, radiansToDegrees(theta) );
-    incidentPhiWidget = new FloatVarWidget("Incident angle - phiL", 0, 360, radiansToDegrees(phi) );
+    incidentThetaWidget = new FloatVarWidget("Incident angle - thetaL", 0, 90, glm::degrees(theta) );
+    incidentPhiWidget = new FloatVarWidget("Incident angle - phiL", 0, 360, glm::degrees(phi) );
     connect(incidentThetaWidget, SIGNAL(valueChanged(float)), this, SLOT(emitIncidentDirectionChanged()));
     connect(incidentPhiWidget, SIGNAL(valueChanged(float)), this, SLOT(emitIncidentDirectionChanged()));
     mainLayout->addWidget( incidentThetaWidget, addIndex++, 0, 1, 2 );
@@ -143,8 +146,8 @@ void ParameterWindow::createLayout()
 
 void ParameterWindow::incidentVectorChanged( float newTheta, float newPhi )
 {
-    incidentThetaWidget->setValue( radiansToDegrees(newTheta) );
-    incidentPhiWidget->setValue( radiansToDegrees(newPhi) );
+    incidentThetaWidget->setValue( glm::degrees(newTheta) );
+    incidentPhiWidget->setValue( glm::degrees(newPhi) );
 }
 
 
@@ -275,9 +278,9 @@ void ParameterWindow::emitIncidentDirectionChanged()
 {
     // if the parameter controls exist, update the parameter values
     if( incidentThetaWidget )
-        theta = degreesToRadians( incidentThetaWidget->getValue() );
+        theta = glm::radians( incidentThetaWidget->getValue() );
     if( incidentPhiWidget )
-        phi = degreesToRadians( incidentPhiWidget->getValue() );
+        phi = glm::radians( incidentPhiWidget->getValue() );
 
     emit( incidentDirectionChanged(theta,phi) );
 }

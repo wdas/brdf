@@ -43,16 +43,16 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
 uniform vec3 drawColor;
-varying vec4 albedoData;
+in vec4 albedoData;
+out vec4 fragColor;
 
 void main(void)
 {
 	float alpha = albedoData.w;
-	gl_FragColor = vec4(drawColor,albedoData.w);
+	fragColor = vec4(drawColor,albedoData.w);
 //  gl_FragColor = vec4(albedoData.xyz, 1);
 }
 

@@ -43,20 +43,21 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <GL/glew.h>
+
 #include <QtGui>
 #include <QString>
 #include <math.h>
 #include "DGLShader.h"
 #include "Plot3DWidget.h"
 #include "geodesicHemisphere.h"
+#include "Paths.h"
 
 #ifndef M_PI_2
 #define M_PI_2 1.57079632679489661923
 #endif //M_PI_2
 
-Plot3DWidget::Plot3DWidget( QWidget *parent, std::vector<brdfPackage> bList )
-    : SharedContextGLWidget(parent)
+Plot3DWidget::Plot3DWidget( QWindow *parent, std::vector<brdfPackage> bList )
+    : GLWindow(parent)
 {
     brdfs = bList;
     
@@ -71,6 +72,11 @@ Plot3DWidget::Plot3DWidget( QWidget *parent, std::vector<brdfPackage> bList )
     
     useNDotL = false;
     useLogPlot = false;
+
+    planeSize = 3.0;
+    planeHeight = -0.01;
+
+    initializeGL();
 }
 
 void Plot3DWidget::resetViewingParams()
@@ -82,10 +88,20 @@ void Plot3DWidget::resetViewingParams()
 
 Plot3DWidget::~Plot3DWidget()
 {
-    makeCurrent();
-    
+    glcontext->makeCurrent(this);
+
     // delete the VBO
-    glDeleteBuffers(1, &hemisphereVerticesVBO);
+    glf->glDeleteVertexArrays(1, &hemisphereVerticesVAO);
+    glf->glDeleteBuffers(1, &hemisphereVerticesVBO);
+    glf->glDeleteVertexArrays(1, &planeVAO);
+    glf->glDeleteBuffers(1, &planeVBO);
+    glf->glDeleteVertexArrays(1, &directionVAO);
+    glf->glDeleteBuffers(2, directionVBO);
+    glf->glDeleteVertexArrays(1, &circleVAO);
+    glf->glDeleteBuffers(2, circleVBO);
+
+    delete planeShader;
+    delete plotShader;
 }
 
 QSize Plot3DWidget::minimumSizeHint() const
@@ -100,171 +116,262 @@ QSize Plot3DWidget::sizeHint() const
 
 void Plot3DWidget::initializeGL()
 {
-    glewInit();
-    
+    glcontext->makeCurrent(this);
+
     makeGeodesicHemisphereVBO();
-    
-    glClearColor( 0.2, 0.2, 0.2, 0.2 );
-    glShadeModel(GL_FLAT);
-    glEnable(GL_DEPTH_TEST);
+
+    plotShader  = new DGLShader( (getShaderTemplatesPath() + "Plots3D.vert").c_str(),
+                                 (getShaderTemplatesPath() + "Plots.frag").c_str(),
+                                 (getShaderTemplatesPath() + "Plots3D.geom").c_str());
+    planeShader = new DGLShader( (getShaderTemplatesPath() + "Plane.vert").c_str(),
+                                 (getShaderTemplatesPath() + "Plane.frag").c_str() );
+    createPlaneVAO();
+    createDirectionVAO();
 }
 
 
-void Plot3DWidget::DrawBRDFHemisphere( brdfPackage pkg )
-{   
+void Plot3DWidget::createPlaneVAO()
+{
+    std::vector<glm::vec3> vertices;
+
+    vertices.push_back(glm::vec3(-planeSize, -planeSize, planeHeight));
+    vertices.push_back(glm::vec3(planeSize, -planeSize, planeHeight));
+    vertices.push_back(glm::vec3(planeSize, planeSize, planeHeight));
+    vertices.push_back(glm::vec3(planeSize, planeSize, planeHeight));
+    vertices.push_back(glm::vec3(-planeSize, planeSize, planeHeight));
+    vertices.push_back(glm::vec3(-planeSize, -planeSize, planeHeight));
+
+    glf->glGenVertexArrays(1, &planeVAO);
+    glf->glBindVertexArray(planeVAO);
+
+    glf->glGenBuffers(1, &planeVBO);
+    glf->glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    GLint vertex_loc = planeShader->getAttribLocation("vtx_position");
+    if(vertex_loc>=0){
+        glf->glVertexAttribPointer(vertex_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glf->glEnableVertexAttribArray(vertex_loc);
+    }
+
+    glf->glBindVertexArray(0);
+
+
+    vertices.clear();
+    std::vector<glm::vec3> colors;
+
+    // draw the unit circle
+    float ucInc = 6.28318531 / 60.0f;
+    float ucAngle = 0.0;
+
+    for( int i = 0; i < 60; i++ )
+    {
+        colors.push_back(glm::vec3(0.8, 0.8, 0));
+        vertices.push_back(glm::vec3(cos(ucAngle), sin(ucAngle), 0.0));
+        ucAngle += ucInc;
+    }
+
+    glf->glGenVertexArrays(1, &circleVAO);
+    glf->glBindVertexArray(circleVAO);
+
+    glf->glGenBuffers(2, circleVBO);
+
+    glf->glBindBuffer(GL_ARRAY_BUFFER, circleVBO[0]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    vertex_loc = plotShader->getAttribLocation("vtx_position");
+    if(vertex_loc>=0){
+        glf->glVertexAttribPointer(vertex_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glf->glEnableVertexAttribArray(vertex_loc);
+    }
+
+    glf->glBindBuffer(GL_ARRAY_BUFFER, circleVBO[1]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * colors.size(), colors.data(), GL_STATIC_DRAW);
+    int color_loc = plotShader->getAttribLocation("vtx_color");
+    if(color_loc>=0){
+        glf->glEnableVertexAttribArray(color_loc);
+        glf->glVertexAttribPointer(color_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+
+    glf->glBindVertexArray(0);
+}
+
+
+void Plot3DWidget::createDirectionVAO()
+{
+    const float vectorLength = 5.0;
+
+    incidentVector[0] = sin(inTheta) * cos(inPhi);
+    incidentVector[1] = sin(inTheta) * sin(inPhi);
+    incidentVector[2] = cos(inTheta);
+
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> colors;
+
+    // draw the incident vector
+    colors.push_back(glm::vec3(0, 1, 1));
+    colors.push_back(glm::vec3(0, 1, 1));
+    vertices.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3(vectorLength*incidentVector[0], vectorLength*incidentVector[1], vectorLength*incidentVector[2]));
+
+    // draw the surface normal
+    colors.push_back(glm::vec3(0, 0, 1));
+    colors.push_back(glm::vec3(0, 0, 1));
+    vertices.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3(0, 0, vectorLength));
+
+    // draw the reflection vector
+    colors.push_back(glm::vec3(1, 0, 1));
+    colors.push_back(glm::vec3(1, 0, 1));
+    vertices.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3(-vectorLength*incidentVector[0], -vectorLength*incidentVector[1], vectorLength*incidentVector[2]));
+
+    // draw the U and V lines
+    colors.push_back(glm::vec3(1, 0, 0));
+    colors.push_back(glm::vec3(1, 0, 0));
+    vertices.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3(planeSize, 0, 0));
+    colors.push_back(glm::vec3(0, 1, 0));
+    colors.push_back(glm::vec3(0, 1, 0));
+    vertices.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3(0, planeSize, 0));
+
+    glf->glGenVertexArrays(1, &directionVAO);
+    glf->glBindVertexArray(directionVAO);
+
+    glf->glGenBuffers(2, directionVBO);
+    glf->glBindBuffer(GL_ARRAY_BUFFER, directionVBO[0]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    int vertex_loc = plotShader->getAttribLocation("vtx_position");
+    if(vertex_loc>=0){
+        glf->glEnableVertexAttribArray(vertex_loc);
+        glf->glVertexAttribPointer(vertex_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+
+    glf->glBindBuffer(GL_ARRAY_BUFFER, directionVBO[1]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * colors.size(), colors.data(), GL_STATIC_DRAW);
+    int color_loc = plotShader->getAttribLocation("vtx_color");
+    if(color_loc>=0){
+        glf->glEnableVertexAttribArray(color_loc);
+        glf->glVertexAttribPointer(color_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+    glf->glBindVertexArray(0);
+}
+
+
+void Plot3DWidget::drawBRDFHemisphere( brdfPackage pkg )
+{
     DGLShader* shader = NULL;
-    
+
     // if there's a BRDF, the BRDF pbject sets up and enables the shader
     if( pkg.brdf )
     {
         shader = pkg.brdf->getUpdatedShader( SHADER_REFLECTOMETER, &pkg );
+        shader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+        shader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(modelViewMatrix));
         shader->setUniformFloat( "incidentVector", incidentVector[0], incidentVector[1], incidentVector[2] );
         shader->setUniformFloat( "incidentTheta", inTheta );
         shader->setUniformFloat( "incidentPhi", inPhi );
         shader->setUniformFloat( "useLogPlot", useLogPlot ? 1.0 : 0.0 );
         shader->setUniformFloat( "useNDotL", useNDotL ? 1.0 : 0.0 );
     }
-    
+
+    glf->glBindVertexArray(hemisphereVerticesVAO);
+
     // setup to draw the VBO
-    glVertexPointer( 3, GL_FLOAT, 0, NULL );
-    glBindBuffer(GL_ARRAY_BUFFER, hemisphereVerticesVBO);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    
+    glf->glBindBuffer(GL_ARRAY_BUFFER, hemisphereVerticesVBO);
+    int vertex_loc = shader->getAttribLocation("vtx_position");
+    if(vertex_loc>=0){
+        glf->glEnableVertexAttribArray(vertex_loc);
+        glf->glVertexAttribPointer(vertex_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+
     // ... draw it...
-    glDrawArrays(GL_TRIANGLES, 0, numTrianglesInHemisphere*3);
-    
-    // ... and now we're done!
-    glDisableClientState(GL_VERTEX_ARRAY);
-    
+    glf->glDrawArrays(GL_TRIANGLES, 0, numTrianglesInHemisphere*3);
+
     // if there was a shader, now we have to disable it
     if( pkg.brdf )
         pkg.brdf->disableShader( SHADER_REFLECTOMETER );
+
+    glf->glBindVertexArray(0);
 }
 
 
 void Plot3DWidget::paintGL()
 {
-    if( !isShowing() )
-        return;    
-    
-    float planeSize = 3.0;
-    float planeHeight = -0.01;
-    float vectorLength = 5.0;
-    
-    
-    incidentVector[0] = sin(inTheta) * cos(inPhi);
-    incidentVector[1] = sin(inTheta) * sin(inPhi);
-    incidentVector[2] = cos(inTheta);
-    
-    
-    glDisable( GL_LIGHTING );
-    glDisable( GL_COLOR_MATERIAL );	
-    glLineWidth( 2.0 );
-    
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+    if( !isShowing() || !isExposed())
+        return;
+
+    glcontext->makeCurrent(this);
+    CKGL();
+
+    glf->glEnable(GL_MULTISAMPLE);
+
+    glf->glClearColor( 0.2, 0.2, 0.2, 0.2 );
+    glf->glEnable(GL_DEPTH_TEST);
+    glf->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // try and set some better viewing planes based on zoom factor... this only kinda works
     float nearPlane = std::min<float>( lookZoom*0.1, 0.5 );
     float farPlane =  std::min<float>( lookZoom*10.0, 100.0 );
 
+    float fWidth = float(width()*devicePixelRatio());
+    float fHeight = float(height()*devicePixelRatio());
 
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glViewport(0, 0, width(), height());
-    gluPerspective(FOV_Y, float(width()) / float(height()), nearPlane, farPlane);
-    
-    
-    float lookVec[3];
+    glf->glViewport(0, 0, fWidth, fHeight);
+    projectionMatrix = glm::perspective(FOV_Y, fWidth / fHeight, nearPlane, farPlane);
+
+    glm::vec3 lookVec;
     lookVec[0] = sin(lookTheta) * cos(lookPhi);
     lookVec[1] = sin(lookTheta) * sin(lookPhi);
     lookVec[2] = cos(lookTheta);
-    
+
     lookVec[0] *= lookZoom;
     lookVec[1] *= lookZoom;
     lookVec[2] *= lookZoom;
-    
-    
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    gluLookAt( lookVec[0], lookVec[1], lookVec[2],
-               0, 0, 0,
-               0, 0, 1 );
-    
-    
+
+    modelViewMatrix = glm::lookAt(lookVec, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+
     // draw the hemipshere
     for( int i = 0; i < (int)brdfs.size(); i++ )
-        DrawBRDFHemisphere( brdfs[i] );
-    
-    
-    
-    // draw the incident vector
-    glColor3f( 0, 1, 1 );
-    glBegin( GL_LINES );
-    glVertex3f( 0, 0, 0 );
-    glVertex3f( vectorLength*incidentVector[0], vectorLength*incidentVector[1], vectorLength*incidentVector[2] );
-    glEnd();
-    
-    // draw the surface normal
-    glColor3f( 0, 0, 1 );
-    glBegin( GL_LINES );
-    glVertex3f( 0, 0, 0 );
-    glVertex3f( 0, 0, vectorLength );
-    glEnd();
-    
-    // draw the reflection vector
-    glColor3f( 1, 0, 1 );
-    glBegin( GL_LINES );
-    glVertex3f( 0, 0, 0 );
-    glVertex3f( -vectorLength*incidentVector[0], -vectorLength*incidentVector[1], vectorLength*incidentVector[2] );
-    glEnd();
-    
-    // draw the U and V lines
-    glColor3f( 1, 0, 0 );
-    glBegin( GL_LINES );
-    glVertex3f( 0, 0, 0 );
-    glVertex3f( planeSize, 0, 0 );
-    glEnd();
-    glColor3f( 0, 1, 0 );
-    glBegin( GL_LINES );
-    glVertex3f( 0, 0, 0 );
-    glVertex3f( 0, planeSize, 0 );
-    glEnd();
-    
-    
-    
-    // draw the unit circle
-    float ucInc = 6.28318531 / 60.0f;
-    float ucAngle = 0.0;
-    glColor3f( 0.8, 0.8, 0 );
-    glBegin( GL_LINE_LOOP );
-    for( int i = 0; i < 60; i++ )
-    {
-        glVertex3f( cos(ucAngle), sin(ucAngle), 0.0 );
-        ucAngle += ucInc;
-    }
-    glEnd();
-    
-    
+        drawBRDFHemisphere( brdfs[i] );
+
+    // draw axes and unit circle
+    plotShader->enable();
+    plotShader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+    plotShader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(modelViewMatrix));
+    plotShader->setUniformFloat("viewport_size", fWidth, fHeight);
+    plotShader->setUniformFloat("nearPlane_dist", nearPlane);
+    plotShader->setUniformFloat("thickness", 3.f);
+
+    glf->glBindVertexArray(directionVAO);
+
+    glf->glDrawArrays(GL_LINES, 0, 10);
+
+    glf->glBindVertexArray(circleVAO);
+
+    glf->glDrawArrays(GL_LINE_LOOP, 0, 60);
+
+    glf->glBindVertexArray(0);
+
+    plotShader->disable();
+
+
     // draw the plane
-    glColor3f(0.5, 0.5, 0.5);
-    glBegin(GL_QUADS);
-    glNormal3f(0.0, 0.0, 1.0);
-    glVertex3f(-planeSize, -planeSize, planeHeight);
+    planeShader->enable();
+    planeShader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+    planeShader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(modelViewMatrix));
+    planeShader->setUniformFloat("drawColor",0.5, 0.5, 0.5);
 
-    glNormal3f(0.0, 0.0, 1.0);
-    glVertex3f(planeSize, -planeSize, planeHeight);
+    glf->glBindVertexArray(planeVAO);
 
-    glNormal3f(0.0, 1.0, 0.0);
-    glVertex3f(planeSize, planeSize, planeHeight);
+    glf->glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    glNormal3f(0.0, 1.0, 0.0);
-    glVertex3f(-planeSize, planeSize, planeHeight);
-    glEnd();
+    glf->glBindVertexArray(0);
 
-    glPopAttrib();
+    planeShader->disable();
+
+    glcontext->swapBuffers(this);
 }
+
 
 void Plot3DWidget::mousePressEvent(QMouseEvent *event)
 {
@@ -351,18 +458,20 @@ void Plot3DWidget::makeGeodesicHemisphereVBO()
     float* hemisphereVertices;
     int numSubdivisions = 6;
     int memIndex = 0;
-    
+
     // allocate enough memory for all the vertices in the hemisphere
     numTrianglesInHemisphere = 40 * int(powf(4.0, float(numSubdivisions)));
     hemisphereVertices = new float[ numTrianglesInHemisphere * 3 * 3 ];
     //printf( "numTrianglesInHemisphere: %d\n", numTrianglesInHemisphere );
-    
-    
+
+    glf->glGenVertexArrays(1, &hemisphereVerticesVAO);
+    glf->glBindVertexArray(hemisphereVerticesVAO);
+
     // Generate and bind the vertex buffer object
-    glGenBuffers( 1, &hemisphereVerticesVBO );
-    glBindBuffer( GL_ARRAY_BUFFER, hemisphereVerticesVBO );
-    
-    
+    glf->glGenBuffers( 1, &hemisphereVerticesVBO );
+    glf->glBindBuffer( GL_ARRAY_BUFFER, hemisphereVerticesVBO );
+
+
     // recursively divide the hemisphere triangles to get a nicely tessellated hemisphere
     for( int i = 0; i < 40; i++ )
     {
@@ -371,10 +480,11 @@ void Plot3DWidget::makeGeodesicHemisphereVBO()
                         geodesicHemisphereVerts[i][1],
                         geodesicHemisphereVerts[i][2], numSubdivisions );
     }
-    
+
     // copy the data into a buffer on the GPU
-    glBufferData(GL_ARRAY_BUFFER, numTrianglesInHemisphere*sizeof(float)*9, hemisphereVertices, GL_STATIC_DRAW);
-    
+    glf->glBufferData(GL_ARRAY_BUFFER, numTrianglesInHemisphere*sizeof(float)*9, hemisphereVertices, GL_STATIC_DRAW);
+    glf->glBindVertexArray(0);
+
     // now that the hemisphere vertices are on the GPU, we're done with the local copy
     delete[] hemisphereVertices;
 }
@@ -386,6 +496,10 @@ void Plot3DWidget::incidentDirectionChanged( float theta, float phi )
     // update the incident direction
     inTheta = theta;
     inPhi = phi;
+
+    glf->glDeleteVertexArrays(1, &directionVAO);
+    glf->glDeleteBuffers(2, directionVBO);
+    createDirectionVAO();
 
     // repaint!
     updateGL();
@@ -417,4 +531,11 @@ void Plot3DWidget::mouseDoubleClickEvent ( QMouseEvent * )
 {
     resetViewingParams();
     updateGL();
+}
+
+void Plot3DWidget::setShowing( bool s )
+{
+    _showing = s;
+    if(_showing)
+        updateGL();
 }

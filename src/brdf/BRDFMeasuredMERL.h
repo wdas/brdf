@@ -47,11 +47,9 @@ infringement.
 #define BRDF_MEASURED_MERL_H
 
 #include <string>
-#include <GL/glew.h>
-#include <GL/glut.h>
 #include "BRDFBase.h"
 
-class BRDFMeasuredMERL : public BRDFBase
+class BRDFMeasuredMERL : public BRDFBase, public GLContext
 {
 public:
 

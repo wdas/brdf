@@ -46,11 +46,12 @@ infringement.
 #ifndef IBLWIDGET_H
 #define IBLWIDGET_H
 
-#include <QGLWidget>
 #include <vector>
+
 #include "bitmapContainer.h"
 #include "BRDFBase.h"
 #include "SharedContextGLWidget.h"
+#include "Quad.h"
 
 class DGLFrameBuffer;
 class DGLShader;
@@ -65,7 +66,7 @@ class SimpleModel;
 
 
 
-class IBLWidget : public SharedContextGLWidget
+class IBLWidget : public GLWindow
 {
     Q_OBJECT
 
@@ -122,6 +123,8 @@ private:
 
     void randomizeSampleGroupOrder();
 
+    void updateEnvRot();
+
     float gamma;
     float exposure;
     
@@ -137,15 +140,16 @@ private:
 
     float envPhi;
     float envTheta;
-    float envRotMatrix[16];
-    float envRotMatrixInverse[16];
+        
+    glm::mat4 projectionMatrix;
+    glm::mat4 modelViewMatrix;
+    glm::mat3 normalMatrix;
+    glm::mat4 envRotMatrix;
+    glm::mat4 envRotMatrixInverse;
+
+    Quad* quad;
     
-    
-    float iMatrix[16];
-    float itMatrix[16];
-    
-    
-    
+    int mSize;
 
     QPoint lastPos;
     bool tumbling;

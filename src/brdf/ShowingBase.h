@@ -79,7 +79,7 @@ public:
         _showing = s;
     }
     
-private:
+protected:
     bool _showing;
 };
 

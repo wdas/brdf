@@ -43,15 +43,20 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
 uniform vec3 incidentVector;
 uniform float incidentTheta;
 uniform float incidentPhi;
 uniform float useLogPlot;
 uniform float useNDotL;
 uniform vec3 colorMask;
+
+in vec3 vtx_position;
+
+out vec4 eyeSpaceVert;
 
 ::INSERT_UNIFORMS_HERE::
 
@@ -60,15 +65,15 @@ uniform vec3 colorMask;
 
 float modifyLog( float x )
 {
-        // log base 10
-        return log(x + 1.0) * 0.434294482;
+    // log base 10
+    return log(x + 1.0) * 0.434294482;
 }
 
 
 void main(void)
 {
     // get the input vertex and normalize it to create the unit hemisphere
-    vec4 inPos = gl_Vertex;
+    vec4 inPos = vec4(vtx_position,1);
     vec3 normalizedInPos = normalize( inPos.xyz );
     vec3 normalizedIncidentVector = normalize(incidentVector);
 
@@ -87,10 +92,7 @@ void main(void)
     inPos.xyz = normalizedInPos * radius;
 
     // do the necessary transformations
-    vec4 eyeSpaceVert = gl_ModelViewMatrix * inPos;
-    gl_Position = gl_ProjectionMatrix * eyeSpaceVert;
-
-    // send the eye-space vert to the fragment shader, to fake some normals with
-    gl_TexCoord[1] = eyeSpaceVert;
+    eyeSpaceVert = modelViewMatrix * inPos;
+    gl_Position = projectionMatrix * eyeSpaceVert;
 }
 

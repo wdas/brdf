@@ -46,16 +46,15 @@ infringement.
 #ifndef Plot3DWidget_H
 #define Plot3DWidget_H
 
-#include <QGLWidget>
 #include "BRDFBase.h"
 #include "SharedContextGLWidget.h"
 
-class Plot3DWidget : public SharedContextGLWidget
+class Plot3DWidget : public GLWindow
 {
     Q_OBJECT
 
 public:
-    Plot3DWidget( QWidget *parent, std::vector<brdfPackage> bList );
+    Plot3DWidget( QWindow *parent, std::vector<brdfPackage> bList );
     ~Plot3DWidget();
 
     QSize minimumSizeHint() const;
@@ -65,6 +64,7 @@ private slots:
     void incidentDirectionChanged( float theta, float phi );
     void graphParametersChanged( bool logPlot, bool nDotL );
     void brdfListChanged( std::vector<brdfPackage> );
+    void setShowing( bool s );
 
 protected:
     void initializeGL();
@@ -78,10 +78,17 @@ private:
 
 	void subdivideTriangle(float* vertices, int& index, float *v1, float *v2, float *v3, int depth);
 	void makeGeodesicHemisphereVBO();
-	void DrawBRDFHemisphere( brdfPackage brdf );
+    void drawBRDFHemisphere( brdfPackage brdf );
+    void createPlaneVAO();
+    void createDirectionVAO();
 
 	GLuint hemisphereVerticesVBO;
+    GLuint hemisphereVerticesVAO;
 	int numTrianglesInHemisphere;	
+
+    GLuint planeVAO, planeVBO;
+    GLuint circleVAO, circleVBO[2];
+    GLuint directionVAO, directionVBO[2];
 
 	float lookPhi;
 	float lookTheta;
@@ -101,6 +108,15 @@ private:
     QPoint lastPos;
 
 	std::vector<brdfPackage> brdfs;
+
+    float planeSize;
+    float planeHeight;
+
+    glm::mat4 projectionMatrix;
+    glm::mat4 modelViewMatrix;
+
+    DGLShader* plotShader;
+    DGLShader* planeShader;
 };
 
 #endif

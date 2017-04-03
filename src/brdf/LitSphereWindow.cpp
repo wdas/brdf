@@ -43,7 +43,7 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <QtGui>
+#include <QVBoxLayout>
 #include <QCheckBox>
 #include "LitSphereWindow.h"
 #include "LitSphereWidget.h"
@@ -52,7 +52,7 @@ infringement.
 
 LitSphereWindow::LitSphereWindow( ParameterWindow* paramWindow )
 {
-    glWidget = new LitSphereWidget( this, paramWindow->getBRDFList() );
+    glWidget = new LitSphereWidget( this->windowHandle(), paramWindow->getBRDFList() );
 
     // so we can tell the parameter window when the incident vector changes (from dragging on the sphere)
     connect( glWidget, SIGNAL(incidentVectorChanged( float, float )), paramWindow, SLOT(incidentVectorChanged( float, float )) );
@@ -62,7 +62,7 @@ LitSphereWindow::LitSphereWindow( ParameterWindow* paramWindow )
 
         
     QVBoxLayout *mainLayout = new QVBoxLayout;
-    mainLayout->addWidget(glWidget);
+    mainLayout->addWidget(QWidget::createWindowContainer(glWidget));
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     mainLayout->addLayout(buttonLayout);

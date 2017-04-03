@@ -43,7 +43,8 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <QtGui>
+#include <QMenuBar>
+#include <QMessageBox>
 #include "MainWindow.h"
 #include "ParameterWindow.h"
 #include "PlotCartesianWidget.h"
@@ -54,7 +55,7 @@ infringement.
 #include "ImageSliceWindow.h"
 #include "IBLWindow.h"
 #include "ShowingDockWidget.h"
-
+#include "ViewerWindow.h"
 
 
 
@@ -65,20 +66,22 @@ MainWindow::MainWindow()
     // create the parameter window
     paramWnd = new ParameterWindow();
 
-    viewer3D = new Plot3DWidget( this, paramWnd->getBRDFList() );
+    viewer3D = new Plot3DWidget( this->windowHandle(), paramWnd->getBRDFList() );
     connect( paramWnd, SIGNAL(incidentDirectionChanged(float,float)), viewer3D, SLOT(incidentDirectionChanged(float,float)) );
     connect( paramWnd, SIGNAL(graphParametersChanged(bool,bool)), viewer3D, SLOT(graphParametersChanged(bool,bool)) );
     connect( paramWnd, SIGNAL(brdfListChanged(std::vector<brdfPackage>)), viewer3D, SLOT(brdfListChanged(std::vector<brdfPackage>)) );
+    plot3D = new ViewerWindow( viewer3D );
 
     cartesianThetaV = new PlotCartesianWindow( paramWnd, THETA_V_PLOT );
     cartesianThetaH = new PlotCartesianWindow( paramWnd, THETA_H_PLOT );
     cartesianThetaD = new PlotCartesianWindow( paramWnd, THETA_D_PLOT );
     cartesianAlbedo = new PlotCartesianWindow( paramWnd, ALBEDO_PLOT );
 
-    viewer2D = new PlotPolarWidget( this, paramWnd->getBRDFList() );
+    viewer2D = new PlotPolarWidget( this->windowHandle(), paramWnd->getBRDFList() );
     connect( paramWnd, SIGNAL(incidentDirectionChanged(float,float)), viewer2D, SLOT(incidentDirectionChanged(float,float)) );
     connect( paramWnd, SIGNAL(graphParametersChanged(bool,bool)), viewer2D, SLOT(graphParametersChanged(bool,bool)) );
     connect( paramWnd, SIGNAL(brdfListChanged(std::vector<brdfPackage>)), viewer2D, SLOT(brdfListChanged(std::vector<brdfPackage>)) );
+    polarPlot = new ViewerWindow(viewer2D);
 
     viewerSphere = new LitSphereWindow( paramWnd );
 
@@ -90,7 +93,7 @@ MainWindow::MainWindow()
     
     
     ShowingDockWidget* Plot3DWidget = new ShowingDockWidget("3D Plot", this);
-    Plot3DWidget->setWidget( viewer3D );
+    Plot3DWidget->setWidget( plot3D );
     addDockWidget( Qt::RightDockWidgetArea, Plot3DWidget );
     
     
@@ -101,7 +104,7 @@ MainWindow::MainWindow()
     addDockWidget( Qt::LeftDockWidgetArea, paramsWidget );
 
     ShowingDockWidget* PlotPolarWidget = new ShowingDockWidget(tr("Polar Plot"), this);
-    PlotPolarWidget->setWidget( viewer2D );
+    PlotPolarWidget->setWidget( polarPlot );
     addDockWidget( Qt::RightDockWidgetArea, PlotPolarWidget );
 
     ShowingDockWidget* thetaVWidget = new ShowingDockWidget(tr("Theta V"), this);
@@ -172,6 +175,19 @@ MainWindow::MainWindow()
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::refresh()
+{
+    viewer2D->updateGL();
+    viewer3D->updateGL();
+    viewerSphere->getWidget()->updateGL();
+    cartesianAlbedo->getWidget()->updateGL();
+    cartesianThetaD->getWidget()->updateGL();
+    cartesianThetaH->getWidget()->updateGL();
+    cartesianThetaV->getWidget()->updateGL();
+    imageSlice->getWidget()->updateGL();
+    ibl->getWidget()->updateGL();
 }
 
 void MainWindow::about()

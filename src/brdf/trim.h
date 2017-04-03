@@ -47,6 +47,9 @@ infringement.
 #define STD_STRING_TRIM_H
 
 #include <algorithm>
+#if defined(_MSC_VER)
+#include <functional>
+#endif
 
 // trim from start
 static inline std::string &trimFromLeft(std::string &s) {

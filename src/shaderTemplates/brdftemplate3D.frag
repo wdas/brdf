@@ -43,26 +43,29 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
 uniform vec3 drawColor;
 
+in vec4 eyeSpaceVert;
+
+out vec4 fragColor;
+
 void main(void)
 {
-	vec3 viewVec = -normalize(gl_TexCoord[1].xyz);
+        vec3 viewVec = -normalize(eyeSpaceVert.xyz);
 
 	// since we're distorting the sphere all over the place, can't really use the sphere normal.
 	// instead compute a per-pixel normal based on the derivative of the eye-space vertex position.
 	// It ain't perfect but it works OK.
-	vec3 normal = normalize( cross( dFdx(gl_TexCoord[1].xyz), dFdy(gl_TexCoord[1].xyz) ) );
+        vec3 normal = normalize( cross( dFdx(eyeSpaceVert.xyz), dFdy(eyeSpaceVert.xyz) ) );
 	vec3 ref = reflect( -viewVec, normal );
 
 	// simple phong shading
 	vec3 q = drawColor * dot( normal, viewVec );	
 	q += vec3(0.4) * pow( max( dot( ref, viewVec ), 0.0 ), 10.0 );
 
-	gl_FragColor = vec4( q, 0 );
+        fragColor = vec4( q, 1 );
 
 }
 

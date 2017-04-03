@@ -44,7 +44,7 @@ infringement.
 */
 
 #ifndef MAIMWINDOW_H
-#define MAINWINDOW_H
+#define MAIMWINDOW_H
 
 #include <QMainWindow>
 
@@ -55,6 +55,8 @@ class PlotPolarWidget;
 class LitSphereWindow;
 class PlotCartesianWindow;
 class IBLWindow;
+class ViewerWindow;
+class ShowingDockWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -63,6 +65,8 @@ class MainWindow : public QMainWindow
 public:
     MainWindow();
     ~MainWindow();
+
+    void refresh();
 
     ParameterWindow* getParameterWindow() { return paramWnd; }
 
@@ -73,6 +77,8 @@ private:
     ParameterWindow* paramWnd;
     Plot3DWidget* viewer3D;
     PlotPolarWidget* viewer2D;
+    ViewerWindow* polarPlot;
+    ViewerWindow* plot3D;
     LitSphereWindow* viewerSphere;
     ImageSliceWindow* imageSlice;
     IBLWindow* ibl;

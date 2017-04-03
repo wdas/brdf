@@ -43,8 +43,7 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
 uniform vec3 incidentVector;
 uniform float incidentTheta;
@@ -66,7 +65,6 @@ uniform samplerCube envCube;
 uniform mat4  envRotMatrix;
 uniform mat4  envRotMatrixInverse;
 
-
 uniform sampler2D probTex;
 uniform sampler2D marginalProbTex;
 uniform vec2 texDims;
@@ -76,6 +74,12 @@ uniform vec2 texDims;
 // G component: CDF
 // B component: inverse CDF
 
+in vec3 eyeSpaceNormal;
+in vec3 eyeSpaceTangent;
+in vec3 eyeSpaceBitangent;
+in vec4 eyeSpaceVert;
+
+out vec4 fragColor;
 
 ::INSERT_UNIFORMS_HERE::
 
@@ -178,13 +182,6 @@ vec2 vectorToUV( vec3 rsReflVector )
     return uv;
 }
 
-/*
-vec3 sampleEnvMap( vec2 uv )
-{
-    .return texture2D( envCube, uv ).rgb;
-}
-*/
-
 
 uint hash(uint x, uint y)
 {
@@ -226,11 +223,11 @@ float warpSample1D( sampler2D tex, float texDim, float u, float v, out float pro
     float t0 = (ui+.5)*invTexDim, t1 = (ui+1.5)*invTexDim;
 
     float cdf0 = t0 < 0 ? // data[-1] is -data[0]  (reflect around (0,0))
-        -texture2D( tex, vec2(.5 * invTexDim, v) ).r :
-        texture2D( tex, vec2(t0, v) ).r;
+        -texture( tex, vec2(.5 * invTexDim, v) ).r :
+        texture( tex, vec2(t0, v) ).r;
     float cdf1 = t1 > 1 ? // data[texDim] = 2-data[texDim-1]  (reflect around (1,1))
-        2-texture2D( tex, vec2(1 - .5 * invTexDim, v) ).r :
-        texture2D( tex, vec2(t1, v) ).r;
+        2-texture( tex, vec2(1 - .5 * invTexDim, v) ).r :
+        texture( tex, vec2(t1, v) ).r;
 
     // infer 1/pdf from slope of inverse cdf
     probInv = (texDim * (cdf1 - cdf0));
@@ -273,9 +270,7 @@ vec4 envMapSample( float u, float v )
     vec3 brdf = max( BRDF( tsSampleDir, tsViewVec, vec3(0,0,1), vec3(1,0,0), vec3(0,1,0) ), vec3(0.0) );
 
     // sample env map
-    //vec3 envSample = sampleEnvMap( uv );
-
-    vec3 envSample = textureCubeLod( envCube, esSampleDir, 0 ).rgb;
+    vec3 envSample = textureLod( envCube, esSampleDir, 0 ).rgb;
 
     // dA (area of cube) = (6*2*2)/N  (Note: divide by N happens later)
     // dw = dA / r^3 = 24 * pow(x*x + y*y + z*z, -1.5) (see pbrt v2 p 947).
@@ -303,7 +298,7 @@ vec4 computeIBL()
     float bigInv = inv * float(stepSize);
 
     float u = float(seed1) * 2.3283064365386963e-10;
-        
+
     // importance sample the BRDF
     if( useBRDFImportance != 0.0 )
     {
@@ -315,10 +310,10 @@ vec4 computeIBL()
             // choose a sample from the environment map
             //result += envMapSample( uu, vv );
         }
-        
+
         result = vec4(0,1,0,1);
     }
-    
+
     // multiple importance sampling
     else if( useMIS != 0.0 )
     {
@@ -330,10 +325,10 @@ vec4 computeIBL()
             // choose a sample from the environment map
             //result += envMapSample( uu, vv );
         }
-        
+
         result = vec4(1,0,0,1);
     }
-    
+
     // importance sample the IBL, or don't importance sample at all
     else
     {
@@ -355,10 +350,10 @@ vec4 computeIBL()
 
 void main(void)
 {
-    esNormal = normalize( gl_TexCoord[0].xyz );
-    esTangent = normalize( gl_TexCoord[1].xyz );
-    esBitangent = normalize( gl_TexCoord[2].xyz );
-    //viewVec = -normalize(gl_TexCoord[3].xyz);
+    esNormal = normalize( eyeSpaceNormal );
+    esTangent = normalize( eyeSpaceTangent );
+    esBitangent = normalize( eyeSpaceBitangent );
+    //viewVec = -normalize( eyeSpaceVert );
     viewVec = vec3(0,0,1);
 
     WorldToLocal = mat3( esTangent, esBitangent, esNormal );
@@ -386,6 +381,5 @@ void main(void)
         result = computeIBL();
     }
 
-    gl_FragColor = result;
+    fragColor = result;
 }
-

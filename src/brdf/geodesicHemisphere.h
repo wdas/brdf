@@ -43,7 +43,7 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#ifndef _GEODESIC_HEMI_H_
+#ifndef _GEODESIC_HEMI_H
 #define _GEODESIC_HEMI_H
 
 /*

@@ -43,15 +43,20 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
-// nothing to see here
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+
+in vec3 vtx_position;
+
+out vec4 worldSpaceVert;
+out vec4 eyeSpaceVert;
+
 void main(void)
 {
-        // do the necessary transformations
-        vec4 eyeSpaceVert = gl_ModelViewMatrix * gl_Vertex;
-        gl_Position = gl_ProjectionMatrix * eyeSpaceVert;
-        gl_TexCoord[0] = gl_Vertex;
-        gl_TexCoord[1] = eyeSpaceVert;
+    // do the necessary transformations
+    worldSpaceVert = vec4(vtx_position,1);
+    eyeSpaceVert = modelViewMatrix * worldSpaceVert;
+    gl_Position = projectionMatrix * eyeSpaceVert;
 }

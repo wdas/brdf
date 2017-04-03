@@ -43,16 +43,18 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <GL/glew.h>
-#include <QtGui>
+
+#include <QMouseEvent>
 #include <QString>
 #include <math.h>
+#include <iostream>
 #include "DGLShader.h"
 #include "PlotPolarWidget.h"
+#include "Paths.h"
 
 
-PlotPolarWidget::PlotPolarWidget(QWidget *parent, std::vector<brdfPackage> bList )
-    : SharedContextGLWidget(parent)
+PlotPolarWidget::PlotPolarWidget(QWindow *parent, std::vector<brdfPackage> bList )
+    : GLWindow(parent)
 {
 	brdfs = bList;
 
@@ -67,11 +69,14 @@ PlotPolarWidget::PlotPolarWidget(QWidget *parent, std::vector<brdfPackage> bList
 
 	useLogPlot = false;
 	useNDotL = false;
+
+    initializeGL();
 }
 
 PlotPolarWidget::~PlotPolarWidget()
 {
-    makeCurrent();
+    glcontext->makeCurrent(this);
+    delete plotShader;
 }
 
 void PlotPolarWidget::resetViewingParams()
@@ -94,132 +99,204 @@ QSize PlotPolarWidget::sizeHint() const
 
 void PlotPolarWidget::initializeGL()
 {
-	glewInit();
+    glcontext->makeCurrent(this);
 
-    glClearColor( 1, 1, 1, 1 );	
-    glShadeModel(GL_FLAT);
-	glDisable(GL_DEPTH_TEST);
+    // this being a line graph, turn on line smoothing
+    glf->glEnable( GL_LINE_SMOOTH );
+    glf->glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    glf->glEnable(GL_BLEND);
+    glf->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	// this being a line graph, turn on line smoothing
-	glEnable( GL_LINE_SMOOTH );
-	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);	
+    plotShader = new DGLShader( (getShaderTemplatesPath() + "Plots.vert").c_str(),
+                                (getShaderTemplatesPath() + "Plots.frag").c_str(),
+                                (getShaderTemplatesPath() + "Plots.geom").c_str());
 }
 
 
 void PlotPolarWidget::DrawBRDFHemisphere( brdfPackage pkg )
 {
-	DGLShader* shader = NULL;
+    DGLShader* shader = NULL;
 
-	// if there's a BRDF, the BRDF pbject sets up and enables the shader
-	if( pkg.brdf )
-	{
-		shader = pkg.brdf->getUpdatedShader( SHADER_POLAR, &pkg );
-		if( shader )
-		{
-			shader->setUniformFloat( "incidentVector", incidentVector[0], incidentVector[1], incidentVector[2] );
-			shader->setUniformFloat( "incidentTheta", inTheta );
-			shader->setUniformFloat( "incidentPhi", inPhi );
-			shader->setUniformFloat( "useLogPlot", useLogPlot ? 1.0 : 0.0 );
-			shader->setUniformFloat( "useNDotL", useNDotL ? 1.0 : 0.0 );
-		}
-	}
+    // if there's a BRDF, the BRDF pbject sets up and enables the shader
+    if( pkg.brdf )
+    {
+        shader = pkg.brdf->getUpdatedShader( SHADER_POLAR, &pkg );
+        if( shader )
+        {
+            glm::mat4 id(1.f);
+            shader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+            shader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(id));
+            shader->setUniformFloat( "incidentVector", incidentVector[0], incidentVector[1], incidentVector[2] );
+            shader->setUniformFloat( "incidentTheta", inTheta );
+            shader->setUniformFloat( "incidentPhi", inPhi );
+            shader->setUniformFloat( "useLogPlot", useLogPlot ? 1.0 : 0.0 );
+            shader->setUniformFloat( "useNDotL", useNDotL ? 1.0 : 0.0 );
+            shader->setUniformFloat( "viewport_size", width()*devicePixelRatio(), height()*devicePixelRatio());
+            shader->setUniformFloat( "thickness", 3.f);
+        }
+    }
 
-	glLineWidth( 1 );
-	glBegin( GL_LINE_LOOP );
-	float inc = 3.14159265 / 360.;
-	float angle = 0.0;
+    float inc = 3.14159265 / 360.;
+    float angle = 0.0;
 
-	for( int i = 0; i <= 360; i++ )
-	{		
-		glVertex3f( cos(angle), sin(angle), angle );
-		angle += inc;
-	}
-	glEnd();
+    std::vector<glm::vec3> vertices;
+    vertices.reserve(360);
 
-	// if there was a shader, now we have to disable it
+    for( int i = 0; i <= 360; i++ )
+    {
+        vertices.push_back(glm::vec3(cos(angle), sin(angle), angle));
+        angle += inc;
+    }
+
+    GLuint vao;
+    glf->glGenVertexArrays(1, &vao);
+    glf->glBindVertexArray(vao);
+    GLuint vbo;
+    glf->glGenBuffers(1, &vbo);
+    glf->glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    int vertex_loc = shader->getAttribLocation("vtx_position");
+    if(vertex_loc>=0){
+        glf->glEnableVertexAttribArray(vertex_loc);
+        glf->glVertexAttribPointer(vertex_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+
+    glf->glDrawArrays(GL_LINE_STRIP_ADJACENCY, 0, vertices.size());
+
+    glf->glBindVertexArray(0);
+
+    // if there was a shader, now we have to disable it
     if( pkg.brdf )
         pkg.brdf->disableShader( SHADER_POLAR );
+
+    glf->glDeleteVertexArrays(1,&vao);
+    glf->glDeleteBuffers(1,&vbo);
 }
 
 
 void PlotPolarWidget::paintGL()
 {
-    if( !isShowing() )
+    if(!isShowing() || !isExposed())
         return;
-    
+
+    glcontext->makeCurrent(this);
+
+    CKGL();
+
     float vectorSize = 2.0;
-    glLineWidth( 1.5 );
-    
+
     incidentVector[0] = sin(inTheta) * cos(inPhi);
     incidentVector[1] = sin(inTheta) * sin(inPhi);
     incidentVector[2] = cos(inTheta);
-    
-    
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glViewport(0, 0, width(), height());
-    
-    float aspect = float(width()) / float(height());
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(centerX + -1.0*aspect*lookZoom, centerX + 1.0*aspect*lookZoom,
-            centerY + -1.0*lookZoom, centerY + 1.0*lookZoom);
-    
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    
-    
+
+    glf->glEnable(GL_MULTISAMPLE);
+    glf->glClearColor( 1, 1, 1, 1 );
+    glf->glDisable(GL_DEPTH_TEST);
+    glf->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    float fWidth = float(width()*devicePixelRatio());
+    float fHeight = float(height()*devicePixelRatio());
+
+    glf->glViewport(0, 0, fWidth, fHeight);
+
+    float aspect = fWidth / fHeight;
+    projectionMatrix = glm::ortho(centerX + -1.0*aspect*lookZoom, centerX + 1.0*aspect*lookZoom,
+                                  centerY + -1.0*lookZoom, centerY + 1.0*lookZoom);
+
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> colors;
+
     // normal vector
-    glColor3ub( 173, 255, 173 );
-    glBegin( GL_LINES );
-    glVertex3f( 0, 0, 0 );
-    glVertex3f( 0, vectorSize, 0 );
-    glEnd();
-    
+    const float c = 173.f/255.f;
+    colors.push_back(glm::vec3(c, 1, c));
+    colors.push_back(glm::vec3(c, 1, c));
+    vertices.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3(0, vectorSize, 0));
+
     // bottom of the hemisphere
-    glColor3f( 0, 0, 0 );
-    glBegin( GL_LINES );
-    glVertex3f( -vectorSize, 0, 0 );
-    glVertex3f( vectorSize, 0, 0 );
-    glEnd();
-    
-    
-    glColor3ub( 173, 255, 255 );
-    glBegin( GL_LINES );
-    glVertex3f( 0, 0, 0 );
-    glVertex3f( vectorSize*cos(1.57079633 - inTheta) * -1.0, vectorSize*sin(1.57079633 - inTheta), 0 );
-    glEnd();
-    
-    glColor3ub( 255, 173, 255 );
-    glBegin( GL_LINES );
-    glVertex3f( 0, 0, 0 );
-    glVertex3f( vectorSize*cos(1.57079633 - inTheta), vectorSize*sin(1.57079633 - inTheta), 0 );
-    glEnd();
-    
-    
+    colors.push_back(glm::vec3(0, 0, 0));
+    colors.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3(-vectorSize, 0, 0));
+    vertices.push_back(glm::vec3(vectorSize, 0, 0));
+
+    colors.push_back(glm::vec3(c, 1, 1));
+    colors.push_back(glm::vec3(c, 1, 1));
+    vertices.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3( vectorSize*cos(1.57079633 - inTheta) * -1.0, vectorSize*sin(1.57079633 - inTheta), 0 ));
+
+    colors.push_back(glm::vec3(1, c, 1));
+    colors.push_back(glm::vec3(1, c, 1));
+    vertices.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3( vectorSize*cos(1.57079633 - inTheta), vectorSize*sin(1.57079633 - inTheta), 0 ));
+
+    plotShader->enable();
+    glm::mat4 id(1.f);
+    plotShader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+    plotShader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(id));
+    plotShader->setUniformFloat("viewport_size", fWidth, fHeight);
+    plotShader->setUniformFloat("thickness", 2.5f);
+
+    GLuint vao;
+    glf->glGenVertexArrays(1, &vao);
+    glf->glBindVertexArray(vao);
+    GLuint vbo[2];
+    glf->glGenBuffers(2, vbo);
+    glf->glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    int vertex_loc = plotShader->getAttribLocation("vtx_position");
+    if(vertex_loc>=0){
+        glf->glEnableVertexAttribArray(vertex_loc);
+        glf->glVertexAttribPointer(vertex_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+
+    glf->glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * colors.size(), colors.data(), GL_STATIC_DRAW);
+    int color_loc = plotShader->getAttribLocation("vtx_color");
+    if(color_loc>=0){
+        glf->glEnableVertexAttribArray(color_loc);
+        glf->glVertexAttribPointer(color_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+
+    glf->glDrawArrays(GL_LINES, 0, vertices.size());
+
+
     // draw the hemisphere
-    glColor3ub( 226, 226, 173 );
-    glBegin( GL_LINE_STRIP );
+    colors.clear();
+    vertices.clear();
+
+    const float c2 = 226.f/255.f;
+
     float inc = 3.14159265 / 180.;
     float angle = 0.0;
-    
+
     for( int i = 0; i <= 180; i++ )
     {
-        glVertex3f( cos(angle), sin(angle), 0 );
+        colors.push_back(glm::vec3(c2,c2,c));
+        vertices.push_back(glm::vec3(cos(angle), sin(angle), 0));
         angle += inc;
     }
-    glEnd();
-    
+
+    glf->glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    glf->glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * colors.size(), colors.data(), GL_STATIC_DRAW);
+
+    glf->glDrawArrays(GL_LINE_STRIP, 0, vertices.size());
+
+    glf->glBindVertexArray(0);
+
+    plotShader->disable();
+
+    glf->glDeleteVertexArrays(1,&vao);
+    glf->glDeleteBuffers(2,vbo);
+
     // draw the hemispheres
     for( int i = 0; i < (int)brdfs.size(); i++ )
         DrawBRDFHemisphere( brdfs[i] );
-    
-    glPopAttrib();
+
+    CKGL();
+
+    glcontext->swapBuffers(this);
 }
 
 void PlotPolarWidget::mousePressEvent(QMouseEvent *event)
@@ -297,4 +374,11 @@ void PlotPolarWidget:: mouseDoubleClickEvent ( QMouseEvent *  )
 {
     resetViewingParams();
     updateGL();
+}
+
+void PlotPolarWidget::setShowing( bool s )
+{
+    _showing = s;
+    if(s)
+        updateGL();
 }

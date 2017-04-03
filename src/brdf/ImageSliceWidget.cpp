@@ -43,23 +43,33 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <GL/glew.h>
-#include <QtGui>
-#include <QString>
+#if defined(_MSC_VER)
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <math.h>
+#else
+#include <cmath>
+#endif
+
+
+#include <QMouseEvent>
+#include <QString>
+#include <iostream>
 #include "DGLShader.h"
 #include "ImageSliceWidget.h"
+#include "DGLFrameBuffer.h"
+#include "Paths.h"
 
 
-ImageSliceWidget::ImageSliceWidget(QWidget *parent, std::vector<brdfPackage> bList )
-    : SharedContextGLWidget(parent)
+ImageSliceWidget::ImageSliceWidget(QWindow *parent, std::vector<brdfPackage> bList )
+    : GLWindow(parent)
 {
     brdfs = bList;
-    
+
     NEAR_PLANE = 0.5f;
     FAR_PLANE = 50.0f;
     FOV_Y = 45.0f;
-    
+
     // default viewing parameters
     lookZoom = 1.0;
     centerX = 0.4;
@@ -67,7 +77,7 @@ ImageSliceWidget::ImageSliceWidget(QWidget *parent, std::vector<brdfPackage> bLi
 
     scaleX = 0.8;
     scaleY = 1.0;
-    
+
     inTheta = 0.785398163;
     inPhi = 0.785398163;
 
@@ -76,20 +86,27 @@ ImageSliceWidget::ImageSliceWidget(QWidget *parent, std::vector<brdfPackage> bLi
     brightness = 1.0;
     gamma = 2.2;
     exposure = 0.0;
-    
+
     useThetaHSquared = false;
     showChroma = false;
+
+    initializeGL();
+
+    quad = new Quad(-1,-1,1,1,0,0,1.57079633,1.57079633);
 }
 
 ImageSliceWidget::~ImageSliceWidget()
 {
-    makeCurrent();
-
+    glcontext->makeCurrent(this);
+    glf->glDeleteVertexArrays(1, &vao);
+    glf->glDeleteBuffers(2, vbo);
+    delete quad;
+    delete plotShader;
 }
 
 QSize ImageSliceWidget::minimumSizeHint() const
 {
-    return QSize(50, 50);
+    return QSize(256, 256);
 }
 
 QSize ImageSliceWidget::sizeHint() const
@@ -99,11 +116,42 @@ QSize ImageSliceWidget::sizeHint() const
 
 void ImageSliceWidget::initializeGL()
 {
-    glewInit();
-    
-    glClearColor( 1, 1, 1, 1 );	
-    glShadeModel(GL_FLAT);
-    glDisable(GL_DEPTH_TEST);
+    glcontext->makeCurrent(this);
+    glf->glDisable(GL_DEPTH_TEST);
+
+    plotShader = new DGLShader( (getShaderTemplatesPath() + "Plots.vert").c_str(),
+                                (getShaderTemplatesPath() + "Plots.frag").c_str(),
+                                (getShaderTemplatesPath() + "Plots.geom").c_str());
+
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> colors;
+    colors.push_back(glm::vec3(0, 0, 0));
+    colors.push_back(glm::vec3(0, 0, 0));
+    colors.push_back(glm::vec3(0, 0, 0));
+    colors.push_back(glm::vec3(0, 0, 0));
+    vertices.push_back(glm::vec3(-1, -1, 0));
+    vertices.push_back(glm::vec3(1, -1, 0));
+    vertices.push_back(glm::vec3(1, 1, 0));
+    vertices.push_back(glm::vec3(-1, 1, 0));
+    plotShader->enable();
+    glf->glGenVertexArrays(1, &vao);
+    glf->glBindVertexArray(vao);
+    glf->glGenBuffers(2, vbo);
+    glf->glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    int vertex_loc = plotShader->getAttribLocation("vtx_position");
+    if(vertex_loc>=0){
+        glf->glEnableVertexAttribArray(vertex_loc);
+        glf->glVertexAttribPointer(vertex_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+    glf->glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glf->glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * colors.size(), colors.data(), GL_STATIC_DRAW);
+    int color_loc = plotShader->getAttribLocation("vtx_color");
+    if(color_loc>=0){
+        glf->glEnableVertexAttribArray(color_loc);
+        glf->glVertexAttribPointer(color_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+    plotShader->disable();
 }
 
 
@@ -118,6 +166,9 @@ void ImageSliceWidget::drawImageSlice()
 
         if( shader )
         {
+            glm::mat4 id(1.f);
+            shader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+            shader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(id));
             shader->setUniformFloat( "incidentPhi", inPhi );
             shader->setUniformFloat( "phiD", phiD*(M_PI/180) );
             shader->setUniformFloat( "brightness", brightness );
@@ -129,77 +180,62 @@ void ImageSliceWidget::drawImageSlice()
     }
 
     // the actual image slice quad
-    glColor3f( 1, 0, 0 );
-    glBegin( GL_QUADS );
-        glTexCoord2f( 0,           0 );
-        glVertex2f(  -1,          -1 );
-
-        glTexCoord2f( 1.57079633,  0 );
-        glVertex2f(   1,          -1 );
-
-        glTexCoord2f( 1.57079633,  1.57079633 );
-        glVertex2f(   1,           1 );
-
-        glTexCoord2f( 0,           1.57079633 );
-        glVertex2f(  -1,           1 );
-    glEnd();
+    quad->draw(shader);
 
     // if there was a shader, now we have to disable it
     if( brdfs[0].brdf )
         brdfs[0].brdf->disableShader( SHADER_IMAGE_SLICE );
 
-
     // the black border
-    glColor3f( 0, 0, 0 );
-    glLineWidth( 1.0 );
-    glBegin( GL_LINE_LOOP );
-        glVertex2f( -1, -1 );
-        glVertex2f(  1, -1 );
-        glVertex2f(  1,  1 );
-        glVertex2f( -1,  1 );
-    glEnd();
+    plotShader->enable();
+    glm::mat4 id(1.f);
+    plotShader->setUniformMatrix4("projectionMatrix", glm::value_ptr(projectionMatrix));
+    plotShader->setUniformMatrix4("modelViewMatrix",  glm::value_ptr(id));
+    float fWidth = float(width()*devicePixelRatio());
+    float fHeight = float(height()*devicePixelRatio());
+    plotShader->setUniformFloat("viewport_size", fWidth, fHeight);
+    plotShader->setUniformFloat("thickness", 1.f);
+    glf->glBindVertexArray(vao);
+    glf->glDrawArrays(GL_LINE_LOOP, 0, 4);
+    plotShader->disable();
 }
 
 
 void ImageSliceWidget::paintGL()
 {
-    if( !isShowing() )
+    if( !isShowing() || !isExposed())
         return;
-    
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDisable( GL_DEPTH_TEST );
-    
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glViewport(0, 0, width(), height());
-    
+
+    glcontext->makeCurrent(this);
+
+    glf->glClearColor( 1, 1, 1, 1 );
+    glf->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glf->glDisable( GL_DEPTH_TEST );
+
     float sphereMargin = 1.1;
-    float fWidth = float(width());
-    float fHeight = float(height());
+    float fWidth = float(width()*devicePixelRatio());
+    float fHeight = float(height()*devicePixelRatio());
+
+    glf->glViewport(0, 0, fWidth, fHeight);
+
     if( width() > height() )
     {
         float aspect = fWidth / fHeight;
-        gluOrtho2D( -aspect * sphereMargin, aspect * sphereMargin, -sphereMargin, sphereMargin );
+        projectionMatrix = glm::ortho( -aspect * sphereMargin, aspect * sphereMargin, -sphereMargin, sphereMargin );
     }
     else
     {
         float invAspect = fHeight / fWidth;
-        gluOrtho2D( -sphereMargin, sphereMargin, -invAspect * sphereMargin, invAspect * sphereMargin );
+        projectionMatrix = glm::ortho( -sphereMargin, sphereMargin, -invAspect * sphereMargin, invAspect * sphereMargin );
     }
-    
-    
-    
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
 
     // if there are BRDFs, draw the image slice
     if( brdfs.size() )
+    {
         drawImageSlice();
+    }
 
-    
-    glPopAttrib();
+    glcontext->swapBuffers(this);
 }
 
 void ImageSliceWidget::mousePressEvent(QMouseEvent *event)
@@ -211,7 +247,7 @@ void ImageSliceWidget::mouseMoveEvent(QMouseEvent *event)
 {
     int dx = event->x() - lastPos.x();
     int dy = event->y() - lastPos.y();
-    
+
     // control+left adjusts the x-scale of the graph
     if( event->buttons() & Qt::LeftButton && event->modifiers() & Qt::ControlModifier )
     {
@@ -233,27 +269,27 @@ void ImageSliceWidget::mouseMoveEvent(QMouseEvent *event)
     // left mouse button adjusts the viewing dir
     else if (event->buttons() & Qt::LeftButton)
     {
-        float xScalar = 1.0 / float(width());
-        float yScalar = 1.0 / float(height());
+        float xScalar = 1.0 / float(width()*devicePixelRatio());
+        float yScalar = 1.0 / float(height()*devicePixelRatio());
 
         centerX += float(-dx)*xScalar*2.0*lookZoom;
         centerY += float( dy)*yScalar*2.0*lookZoom;
     }
-    
+
     // right mouse button adjusts the zoom
     else if (event->buttons() & Qt::RightButton)
     {
         // use the dir with the biggest change
         int d = abs(dx) > abs(dy) ? dx : dy;
-        
+
         lookZoom -= float(d) * lookZoom * 0.05;
         lookZoom = std::max<float>( lookZoom, 0.01f );
         lookZoom = std::min<float>( lookZoom, 50.0f );
     }
-    
-    
+
+
     lastPos = event->pos();
-    
+
     // redraw
     updateGL();
 }
@@ -297,11 +333,12 @@ void ImageSliceWidget::showChromaChanged( int v )
     updateGL();
 }
 
+
 void ImageSliceWidget::incidentDirectionChanged( float theta, float phi )
 {
     inTheta = theta;
     inPhi = phi;
-            
+
     // repaint!
     updateGL();
 }

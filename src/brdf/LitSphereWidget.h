@@ -46,16 +46,16 @@ infringement.
 #ifndef LitSphereWidget_H
 #define LitSphereWidget_H
 
-#include <QGLWidget>
 #include "BRDFBase.h"
 #include "SharedContextGLWidget.h"
+#include "Sphere.h"
 
-class LitSphereWidget : public SharedContextGLWidget
+class LitSphereWidget : public GLWindow
 {
     Q_OBJECT
 
 public:
-    LitSphereWidget(QWidget *parent, std::vector<brdfPackage> );
+    LitSphereWidget(QWindow *parent, std::vector<brdfPackage> );
     ~LitSphereWidget();
 
     QSize minimumSizeHint() const;
@@ -103,6 +103,11 @@ private:
     float sphereMargin;
     
     std::vector<brdfPackage> brdfs;
+
+    glm::mat4 projectionMatrix;
+    glm::mat4 modelViewMatrix;
+
+    Sphere* sphere;
 };
 
 #endif

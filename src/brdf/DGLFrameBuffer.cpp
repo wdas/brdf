@@ -43,18 +43,18 @@ implied warranties of merchantability, fitness for a particular purpose and non-
 infringement.
 */
 
-#include <GL/glew.h>
 #include <stdio.h>
+#include <iostream>
 #include <algorithm>
 #include <string.h>
 #include "DGLFrameBuffer.h"
 
-    
+
 DGLFrameBuffer::DGLFrameBuffer( int w, int h, std::string name )
-              : _width(w), _height(h), _name(name)
+    : _width(w), _height(h), _name(name)
 {
     // generate an ID for the framebuffer object
-    glGenFramebuffers( 1, &_fboID );
+    glf->glGenFramebuffers( 1, &_fboID );
 }
 
 
@@ -65,24 +65,24 @@ void DGLFrameBuffer::addColorBuffer( int attachmentPoint, GLenum type )
         _colorAttachments.resize( attachmentPoint + 1 );
 
     bind();
-    
+
     // Now setup a texture to render to
-    glGenTextures( 1, &_colorAttachments[attachmentPoint].bufferID );
-    glBindTexture( GL_TEXTURE_2D, _colorAttachments[attachmentPoint].bufferID );
-    glTexImage2D( GL_TEXTURE_2D, 0, type, _width, _height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glf->glGenTextures( 1, &_colorAttachments[attachmentPoint].bufferID );
+    glf->glBindTexture( GL_TEXTURE_2D, _colorAttachments[attachmentPoint].bufferID );
+    glf->glTexImage2D( GL_TEXTURE_2D, 0, type, _width, _height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glf->glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 
     // to (eventually) get mipmapping working, we'll need to do something like:
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    // glGenerateMipmapEXT(GL_TEXTURE_2D);
+    // glf->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glf->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    // glf->glGenerateMipmapEXT(GL_TEXTURE_2D);
 
     // And attach it to the FBO so we can render to it
-    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentPoint, GL_TEXTURE_2D, _colorAttachments[attachmentPoint].bufferID, 0 );
-    
+    glf->glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentPoint, GL_TEXTURE_2D, _colorAttachments[attachmentPoint].bufferID, 0 );
+
     unbind();
 }
 
@@ -90,12 +90,12 @@ void DGLFrameBuffer::addColorBuffer( int attachmentPoint, GLenum type )
 void DGLFrameBuffer::addDepthBuffer()
 {
     // Now setup a texture to render to
-    glGenTextures( 1, &_depthAttachment.bufferID );
-    glBindTexture( GL_TEXTURE_2D, _depthAttachment.bufferID );
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _width, _height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL );
+    glf->glGenTextures( 1, &_depthAttachment.bufferID );
+    glf->glBindTexture( GL_TEXTURE_2D, _depthAttachment.bufferID );
+    glf->glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _width, _height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL );
 
     bind();
-    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthAttachment.bufferID, 0 );
+    glf->glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthAttachment.bufferID, 0 );
     unbind();
 }
 
@@ -105,13 +105,13 @@ void DGLFrameBuffer::attachExistingColorBuffer( int attachmentPoint, GLuint buff
     // make sure there's enough room in the attachments vector
     if( (int)_colorAttachments.size() < attachmentPoint + 1 )
         _colorAttachments.resize( attachmentPoint + 1 );
-   
+
     // attach the given buffer to the FBO
     _colorAttachments[attachmentPoint].bufferID = bufferID;
     _colorAttachments[attachmentPoint].owned = takeOwnership;
 
     bind();
-    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentPoint, GL_TEXTURE_2D, _colorAttachments[attachmentPoint].bufferID, 0 );
+    glf->glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentPoint, GL_TEXTURE_2D, _colorAttachments[attachmentPoint].bufferID, 0 );
     unbind();
 }
 
@@ -122,7 +122,7 @@ void DGLFrameBuffer::attachExistingDepthBuffer( GLuint bufferID, bool takeOwners
     _depthAttachment.owned = takeOwnership;
 
     bind();
-    glFramebufferTexture2D( GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, bufferID, 0 );
+    glf->glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, bufferID, 0 );
     unbind();
 }
 
@@ -131,45 +131,42 @@ DGLFrameBuffer::~DGLFrameBuffer()
 {
     // delete the depth texture (if this object owns it)
     if( _depthAttachment.owned )
-        glDeleteTextures( 1, &_depthAttachment.bufferID );
+        glf->glDeleteTextures( 1, &_depthAttachment.bufferID );
 
     // same with the attached color buffer textures
     for( int i = 0; i < (int)_colorAttachments.size(); i++ ) {
         if( _colorAttachments[i].owned )
-            glDeleteTextures( 1, &_colorAttachments[i].bufferID );
+            glf->glDeleteTextures( 1, &_colorAttachments[i].bufferID );
     }
     _colorAttachments.clear();
 
     // finally get rid of the framebuffer itself
-    glDeleteFramebuffers( 1, &_fboID );
+    glf->glDeleteFramebuffers( 1, &_fboID );
 }
 
 
 
 void DGLFrameBuffer::bind()
 {
-    GLint tmp;
- 
-    // save the previously bound FBO   
-    glGetIntegerv( GL_FRAMEBUFFER_BINDING, &tmp );
-    _lastBoundBuffer = tmp;
-    
+    // save the previously bound FBO
+    glf->glGetIntegerv( GL_FRAMEBUFFER_BINDING, &_lastBoundBuffer );
+
     // First we bind the FBO so we can render to it
-    glBindFramebuffer(GL_FRAMEBUFFER, _fboID);
-  
+    glf->glBindFramebuffer(GL_FRAMEBUFFER, _fboID);
+
     // adjust the viewport for this FBO
-    glPushAttrib( GL_VIEWPORT_BIT );
-    glViewport( 0, 0, _width, _height );
+    glf->glGetIntegerv(GL_VIEWPORT,_viewport);
+    glf->glViewport( 0, 0, _width, _height );
 }
 
 
 void DGLFrameBuffer::unbind()
 {
-    // pops the viewport bit
-    glPopAttrib();
-    
+    // retore the viewport
+    glf->glViewport( _viewport[0], _viewport[1], _viewport[2], _viewport[3] );
+
     // rebind whatever was bound before this FBO
-    glBindFramebuffer( GL_FRAMEBUFFER, _lastBoundBuffer );
+    glf->glBindFramebuffer( GL_FRAMEBUFFER, _lastBoundBuffer );
 }
 
 
@@ -183,7 +180,7 @@ void DGLFrameBuffer::clear()
     if( _depthAttachment.bufferID )
         mask |= GL_DEPTH_BUFFER_BIT;
 
-    glClear( mask );
+    glf->glClear( mask );
 }
 
 
@@ -193,31 +190,46 @@ bool DGLFrameBuffer::checkStatus( bool printError )
 
     // bind the framebuffer so we can check it
     bind();
-    
-    GLenum status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
-    
+
+    GLenum status = glf->glCheckFramebufferStatus( GL_FRAMEBUFFER );
+
     // did the setup work correctly?
     if( status != GL_FRAMEBUFFER_COMPLETE ) {
 
         // nope.
         statusOK = false;
 
-        // (possibly) print out the 
-        if( printError ) {
-            if( GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT ) {
-                printf( "FBO is missing a required image/buffer attachment\n" );
-            } else if( GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT ) {
-                printf( "FBO has no images/buffers attached\n" );
-            } else if( GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER ) {
-                printf( "FBO is trying to draw to a color buffer that has no attachment\n" );
-            } else if( GL_FRAMEBUFFER_UNSUPPORTED ) {
-                printf( "The FBO format is not supported by current graphics card or driver\n" );
-            } else {
-                printf( "Unknown error from glCheckFramebufferStatus\n" );
+        if(printError) {
+            switch(status)
+            {
+            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+                std::cerr << "An attachment could not be bound to frame buffer object!" << std::endl;
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+                std::cerr << "Attachments are missing! At least one image (texture) must be bound to the frame buffer object!" << std::endl;
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+                std::cerr << "A Draw buffer is incomplete or undefinied. All draw buffers must specify attachment points that have images attached." << std::endl;
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+                std::cerr << "A Read buffer is incomplete or undefinied. All read buffers must specify attachment points that have images attached." << std::endl;
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+                std::cerr << "All images must have the same number of multisample samples." << std::endl;
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS :
+                std::cerr << "If a layered image is attached to one attachment, then all attachments must be layered attachments. The attached layers do not have to have the same number of layers, nor do the layers have to come from the same kind of texture." << std::endl;
+                break;
+            case GL_FRAMEBUFFER_UNSUPPORTED:
+                std::cerr << "Attempt to use an unsupported format combinaton!" << std::endl;
+                break;
+            default:
+                std::cerr << "Unknown error while attempting to create frame buffer object!" << std::endl;
+                break;
             }
         }
     }
-    
+
     unbind();
     return statusOK;
 }
@@ -229,7 +241,7 @@ void DGLFrameBuffer::enableOutputBuffers( int buf0, int buf1, int buf2, int buf3
     int numBufs = 0;
 
     // zero means don't enable the given output buffer. This is only useful if the user
-    // is enabling non-sequential output buffers, which would be weird but possible.    
+    // is enabling non-sequential output buffers, which would be weird but possible.
     memset( outputBuffers, 0, sizeof(GLenum)*8 );
 
     if( buf0 >= 0 ) { outputBuffers[0] = GL_COLOR_ATTACHMENT0 + buf0; numBufs = 1; }
@@ -240,8 +252,8 @@ void DGLFrameBuffer::enableOutputBuffers( int buf0, int buf1, int buf2, int buf3
     if( buf5 >= 0 ) { outputBuffers[5] = GL_COLOR_ATTACHMENT0 + buf5; numBufs = 6; }
     if( buf6 >= 0 ) { outputBuffers[6] = GL_COLOR_ATTACHMENT0 + buf6; numBufs = 7; }
     if( buf7 >= 0 ) { outputBuffers[7] = GL_COLOR_ATTACHMENT0 + buf7; numBufs = 8; }
-    
-    glDrawBuffers( numBufs, outputBuffers );
+
+    glf->glDrawBuffers( numBufs, outputBuffers );
 }
 
 

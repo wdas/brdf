@@ -47,7 +47,7 @@ uniform sampler2D imageSlice;
 
 vec3 BRDF( vec3 toLight, vec3 toViewer, vec3 normal, vec3 tangent, vec3 bitangent )
 {
-    vec3 texSample = texture2D( imageSlice, vec2(0.1,0.9) ).rgb;
+    vec3 texSample = texture( imageSlice, vec2(0.1,0.9) ).rgb;
 
     return texSample;
 }

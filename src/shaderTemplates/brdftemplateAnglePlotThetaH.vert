@@ -44,9 +44,10 @@ infringement.
 */
 
 
-#version 130
-#extension EXT_gpu_shader4 : enable
+#version 410
 
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
 uniform vec3 incidentVector;
 uniform float incidentTheta;
 uniform float incidentPhi;
@@ -54,6 +55,8 @@ uniform float useLogPlot;
 uniform float useNDotL;
 uniform vec3 colorMask;
 uniform float thetaD;
+
+in vec3 vtx_position;
 
 ::INSERT_UNIFORMS_HERE::
 
@@ -63,10 +66,9 @@ uniform float thetaD;
 
 float modifyLog( float x )
 {
-        // log base 10
-        return log(x + 1.0) * 0.434294482;
+    // log base 10
+    return log(x + 1.0) * 0.434294482;
 }
-
 
 vec3 rotate( vec3 v, vec3 axis, float angle )
 {
@@ -78,7 +80,7 @@ vec3 rotate( vec3 v, vec3 axis, float angle )
 
 void main(void)
 {
-    float thetaH = gl_Vertex.x;
+    float thetaH = vtx_position.x;
 
     vec3 N = vec3(0,0,1); // normal
     vec3 X = vec3(1,0,0); // tangent
@@ -96,6 +98,6 @@ void main(void)
     b = useLogPlot > 0.5 ? modifyLog( b ) : b;
 
     // plot curve, apply pan and zoom
-    gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4( thetaH, b, 0, 1 );
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( thetaH, b, 0, 1 );
 }
 
