@@ -105,13 +105,13 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
     // and mix in diffuse retro-reflection based on roughness
     float FL = SchlickFresnel(NdotL), FV = SchlickFresnel(NdotV);
     float Fd90 = 0.5 + 2 * LdotH*LdotH * roughness;
-    float Fd = mix(1, Fd90, FL) * mix(1, Fd90, FV);
+    float Fd = mix(1.0, Fd90, FL) * mix(1.0, Fd90, FV);
 
     // Based on Hanrahan-Krueger brdf approximation of isotropic bssrdf
     // 1.25 scale is used to (roughly) preserve albedo
     // Fss90 used to "flatten" retroreflection based on roughness
     float Fss90 = LdotH*LdotH*roughness;
-    float Fss = mix(1, Fss90, FL) * mix(1, Fss90, FV);
+    float Fss = mix(1.0, Fss90, FL) * mix(1.0, Fss90, FV);
     float ss = 1.25 * (Fss * (1 / (NdotL + NdotV) - .5) + .5);
 
     // specular
@@ -130,7 +130,7 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
 
     // clearcoat (ior = 1.5 -> F0 = 0.04)
     float Dr = GTR1(NdotH, mix(.1,.001,clearcoatGloss));
-    float Fr = mix(.04, 1, FH);
+    float Fr = mix(.04, 1.0, FH);
     float Gr = smithG_GGX(NdotL, .25) * smithG_GGX(NdotV, .25);
 
     return ((1/PI) * mix(Fd, ss, subsurface)*Cdlin + Fsheen)
