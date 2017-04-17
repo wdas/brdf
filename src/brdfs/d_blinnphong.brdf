@@ -3,8 +3,8 @@ analytic
 # Blinn's 1977 phong variant
 
 # normalization constant:
-# 1/Integrate[Cos[x]^n Cos[x] Sin[x], {x, 0, Pi/2}, {phi, 0, 2 Pi} , Assumptions -> n > 0]
-# == (2 + n)/(2 Pi)
+# 1/Integrate[Cos[x/2]^n Cos[x] Sin[x], {x, 0, Pi/2}, {phi, 0, 2 Pi}, Assumptions -> n > 0]
+# == ( (2 + n)(4 + n) ) / ( 8Pi(2^(-n/2) + n) )
 
 
 # variables go here...
@@ -29,7 +29,7 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
     vec3 H = normalize(L+V);
     float D = pow(max(0, dot(N,H)),n);
     if (normalized)
-        D *= (2+n) / (2*PI);
+        D *= ( (2.0 + n) * (4.0 + n) ) / ( 8.0 * PI * ( pow( 2.0, -n / 2.0 ) + n ) );
     return vec3(D);
 }
 
