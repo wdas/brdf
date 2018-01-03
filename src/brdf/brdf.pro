@@ -91,6 +91,10 @@ win32-msvc*{
     LIBS += ZLIB_LIB
 }
 
+win32-g++*{
+    LIBS += -lz
+}
+
 unix*{
     LIBS += -lz
 }
@@ -100,3 +104,5 @@ linux-mingw32-custom{
     WINDOWS_BUILD=/jobs2/soft/users/aselle/windows-build
     LIBS += -static-libgcc
 }
+
+RESOURCES +=
