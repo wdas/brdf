@@ -91,6 +91,10 @@ win32-msvc*{
     LIBS += ZLIB_LIB
 }
 
+win32-g++*{
+    LIBS += -lz
+}
+
 unix*{
     LIBS += -lz
 }

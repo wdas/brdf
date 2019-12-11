@@ -224,10 +224,10 @@ public:
 	// split into dirs
 	_searchdirs.clear();
 	char* buff = strdup(path);
-	char* pos = 0;
 #ifdef WIN32
 	char* token = strtok(buff, ":");
 #else
+	char* pos = 0;
 	char* token = strtok_r(buff, ":", &pos);
 #endif
 	while (token) {

@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     *stdout=*fp;
     setvbuf(stdout,NULL,_IONBF,0);
     HANDLE stdErrHandle=GetStdHandle(STD_ERROR_HANDLE);
-    int hConHandleErr=_open_osfhandle((intptr_t) stdOutHandle,_O_TEXT);
+    int hConHandleErr=_open_osfhandle((intptr_t) stdErrHandle,_O_TEXT);
     FILE* fperr=_fdopen( (int)hConHandleErr,"w");
     *stderr=*fperr;
     setvbuf(stderr,NULL,_IONBF,0);
