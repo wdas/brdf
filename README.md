@@ -8,6 +8,8 @@ MIT CSAIL.
 Most of the application should be (hopefully) self explanatory, so the goal here is to
 document the less obvious bits of usage, as well as providing some useful info.
 
+
+
 ### Which BRDF(s) you are seeing
 -----------------------------------
 In the BRDF Parameters window, each BRDF has a colored background. The plotted values
