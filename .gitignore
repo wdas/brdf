@@ -1,7 +1,6 @@
+/Linux-*
 *.o
 moc_*
-Makefile
-Linux-*
 *.dll
 *.exe
 *.filters
@@ -15,3 +14,6 @@ Linux-*
 *.vcxproj
 src/brdf/release
 src/brdf/debug
+/Makefile.main.pro
+/src/**/Makefile
+/.qmake.stash

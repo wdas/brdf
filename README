@@ -147,3 +147,11 @@ MIT CSAIL data is here:
 http://people.csail.mit.edu/addy/research/brdf/
 
 
+BUILD INSTRUCTIONs
+------------------
+
+To install brdf run:
+
+    make install [prefix=<some-directory>]
+
+If you do not specify "prefix=..." then brdf will be installed into the current directory.
